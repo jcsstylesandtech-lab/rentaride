@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="pin" x1="120" y1="40" x2="400" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00C8FF"/><stop offset="1" stop-color="#0866FF"/>
+    </linearGradient>
+  </defs><path d="M256 470C256 470 96 318 96 214C96 126 168 54 256 54C344 54 416 126 416 214C416 318 256 470 256 470Z" fill="url(#pin)"/><g transform="translate(118 74) scale(0.56)"><g transform="translate(46 0) skewX(-10)"><path d="M168 104H304C376 104 420 146 420 206C420 256 390 292 342 304L424 408H340L266 310H238V408H168ZM238 162H298C330 162 348 180 348 206C348 232 330 250 298 250H238Z" fill="#FFFFFF" fill-rule="evenodd"/></g></g>
+</svg>

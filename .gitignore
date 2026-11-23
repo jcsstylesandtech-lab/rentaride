@@ -1,0 +1,30 @@
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Secrets
+.env
+.env.*
+!.env.example
+**/env/*.json
+!**/env/*.example.json
+
+# Flutter / Dart (per-package .gitignore files cover the rest)
+.dart_tool/
+build/
+
+# iOS Google keys (template: Secrets.example.xcconfig)
+**/ios/Flutter/Secrets.xcconfig
+Pods/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
