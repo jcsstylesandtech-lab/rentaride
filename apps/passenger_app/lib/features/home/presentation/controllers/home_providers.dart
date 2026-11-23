@@ -17,8 +17,9 @@ final placesRepositoryProvider = Provider<PlacesRepository>((ref) {
   GooglePlacesClient? client;
   return LivePlacesRepository(base, () async {
     if (client != null) return client;
-    final key = (await ref.read(googleConfigProvider.future)).mapsApiKey;
-    return client = key == null ? null : GooglePlacesClient(key);
+    final config = await ref.read(googleConfigProvider.future);
+    final key = config.mapsApiKey;
+    return client = key == null ? null : GooglePlacesClient(key, config.appIdentity);
   });
 });
 

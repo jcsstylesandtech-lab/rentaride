@@ -1,0 +1,75 @@
+# Builds release APKs for the passenger and driver apps.
+# Run it from GitHub → Actions → "Android APKs" → Run workflow, or by pushing
+# app changes to main. Keys come from encrypted repository secrets and are
+# written to git-ignored files on the build machine only.
+name: Android APKs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/passenger_app/**"
+      - "apps/driver_app/**"
+      - "packages/**"
+      - ".github/workflows/android-apks.yml"
+
+jobs:
+  build:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: passenger_app
+            apk_name: rent-a-ride-passenger
+          - app: driver_app
+            apk_name: rent-a-ride-driver
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.10"
+          channel: stable
+          cache: true
+
+      - name: Write app settings (from secrets)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: |
+          mkdir -p env
+          python3 - <<'PY'
+          import json, os
+          json.dump({"APP_ENV": "prod",
+                     "SUPABASE_URL": os.environ["SUPABASE_URL"],
+                     "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"]},
+                    open("env/dev.json", "w"))
+          PY
+          echo "GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}" >> android/local.properties
+
+      - run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release --dart-define-from-file=env/dev.json
+
+      - name: Name the APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk "${{ matrix.apk_name }}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.apk_name }}
+          path: apps/${{ matrix.app }}/${{ matrix.apk_name }}.apk
+          retention-days: 30

@@ -1,0 +1,9 @@
+# Driver app icon — source art in brand/rar_driver_app_icon.svg
+flutter_launcher_icons:
+  image_path: "../../brand/png/rar_driver_app_icon_1024.png"
+  ios: true
+  remove_alpha_ios: true
+  android: "launcher_icon"
+  adaptive_icon_background: "#0866FF"
+  adaptive_icon_foreground: "../../brand/png/rar_driver_adaptive_foreground_1024.png"
+  min_sdk_android: 21

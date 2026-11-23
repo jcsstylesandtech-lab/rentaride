@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Rent A Ride Driver: the passenger "R" mark on a bright royal→cyan
+       field, with a navy steering-wheel badge. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00C8FF"/><stop offset="0.5" stop-color="#0866FF"/>
+      <stop offset="1" stop-color="#0A3FC2"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="110" cy="80" r="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="st" x1="40" y1="0" x2="150" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#061B49" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#061B49" stop-opacity="0.75"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+  <!-- R mark (same geometry as the passenger icon), nudged up-left -->
+  <g transform="translate(22 18) scale(0.80)">
+    <g transform="translate(46 0) skewX(-10)">
+      <rect x="98" y="146" width="52" height="30" rx="15" fill="url(#st)"/>
+      <rect x="58" y="211" width="92" height="30" rx="15" fill="url(#st)"/>
+      <rect x="104" y="276" width="46" height="30" rx="15" fill="url(#st)"/>
+      <path d="M168 104H304C376 104 420 146 420 206C420 256 390 292 342 304L424 408H340L266 310H238V408H168ZM238 162H298C330 162 348 180 348 206C348 232 330 250 298 250H238Z" fill="#FFFFFF" fill-rule="evenodd"/>
+    </g>
+  </g>
+  <!-- Steering-wheel badge -->
+  <g transform="translate(372 372)">
+    <circle r="92" fill="#061B49"/>
+    <circle r="92" fill="none" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="8"/>
+    <circle r="54" fill="none" stroke="#00C8FF" stroke-width="15"/>
+    <circle r="15" fill="#00C8FF"/>
+    <path d="M-50 4 L-15 4 M15 4 L50 4 M0 15 L0 52" stroke="#00C8FF" stroke-width="13" stroke-linecap="round"/>
+  </g>
+</svg>

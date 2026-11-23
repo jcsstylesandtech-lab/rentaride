@@ -5,14 +5,14 @@ import 'package:http/http.dart' as http;
 
 import 'map_data.dart';
 
-/// Google Places API (New) over HTTPS. Requests carry the iOS bundle ID so a
-/// key restricted to the app in Google Cloud is accepted.
+/// Google Places API (New) over HTTPS. Requests carry [_identity] (iOS bundle
+/// ID, or Android package + certificate) so an app-restricted key works.
 class GooglePlacesClient {
-  GooglePlacesClient(this._key, {http.Client? client}) : _http = client ?? http.Client();
+  GooglePlacesClient(this._key, this._identity, {http.Client? client}) : _http = client ?? http.Client();
 
   final String _key;
+  final Map<String, String> _identity;
   final http.Client _http;
-  static const _bundleId = 'ng.rentaride.rentARidePassenger';
   static const _base = 'https://places.googleapis.com/v1';
 
   /// One token per search → pick, so Google bills it as a single session.
@@ -25,7 +25,7 @@ class GooglePlacesClient {
   Map<String, String> _headers([String? fieldMask]) => {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': _key,
-        'X-Ios-Bundle-Identifier': _bundleId,
+        ..._identity,
         'X-Goog-FieldMask': ?fieldMask,
       };
 
