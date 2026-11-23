@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -15,6 +16,10 @@ android {
     namespace = "ng.rentaride.rent_a_ride_passenger"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -43,12 +48,6 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
