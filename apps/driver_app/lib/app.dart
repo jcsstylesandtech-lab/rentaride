@@ -4,8 +4,8 @@ import 'package:rar_design_system/rar_design_system.dart';
 
 import 'core/config.dart';
 import 'core/format.dart';
-import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/intro_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'state/providers.dart';
 import 'widgets/common.dart';
@@ -32,7 +32,7 @@ class _Gate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionProvider);
     if (session.isLoading && !session.hasValue) return const LoadingScreen();
-    if (session.value == null) return const AuthScreen();
+    if (session.value == null) return const IntroScreen();
 
     final state = ref.watch(driverStateProvider);
     return state.when(

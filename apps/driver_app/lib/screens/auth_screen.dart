@@ -7,7 +7,10 @@ import '../state/providers.dart';
 import '../widgets/common.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.startWithSignUp = false});
+
+  /// Open on "Create driver account" instead of sign in.
+  final bool startWithSignUp;
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
@@ -17,7 +20,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _signUp = false;
+  late bool _signUp = widget.startWithSignUp;
   bool _busy = false;
   String? _error;
   String? _notice;
@@ -60,9 +63,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         key: _form,
         child: ListView(
           children: [
-            const SizedBox(height: RarSpacing.xxl),
-            const Row(children: [
-              RarWordmark(logoSize: 40, fontSize: 21, subtitle: 'Driver'),
+            const SizedBox(height: RarSpacing.md),
+            Row(children: [
+              if (Navigator.of(context).canPop())
+                IconButton(onPressed: () => Navigator.of(context).pop(), tooltip: 'Back',
+                    icon: const Icon(Icons.arrow_back_rounded, color: RarColors.white)),
+              const RarWordmark(logoSize: 40, fontSize: 21, subtitle: 'Driver'),
             ]),
             const SizedBox(height: RarSpacing.xxl),
             Text(_signUp ? 'Drive with Rent A Ride' : 'Welcome back, driver',

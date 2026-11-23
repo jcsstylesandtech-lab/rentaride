@@ -2,15 +2,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/config/google_config.dart';
+import '../../../map/google_places.dart';
+import '../../../map/live_places.dart';
 import '../../../map/map_data.dart';
 import '../../../rides/rides_repository.dart';
 
-/// Supabase when the app is built with its settings, otherwise demo data.
-final placesRepositoryProvider = Provider<PlacesRepository>(
-  (ref) => AppConfig.hasBackend
+/// GPS pickup and Google Places search, over Supabase (saved places,
+/// recents) when the app is built with its settings, otherwise demo data.
+final placesRepositoryProvider = Provider<PlacesRepository>((ref) {
+  final base = AppConfig.hasBackend
       ? SupabasePlacesRepository(Supabase.instance.client)
-      : DemoPlacesRepository(),
-);
+      : DemoPlacesRepository();
+  GooglePlacesClient? client;
+  return LivePlacesRepository(base, () async {
+    if (client != null) return client;
+    final key = (await ref.read(googleConfigProvider.future)).mapsApiKey;
+    return client = key == null ? null : GooglePlacesClient(key);
+  });
+});
 
 final nearbyDriversSourceProvider = Provider<NearbyDriversSource>(
   (ref) => AppConfig.hasBackend

@@ -41,6 +41,9 @@ import UIKit
           result([
             "mapsConfigured": AppDelegate.mapsApiKey != nil,
             "googleSignInConfigured": AppDelegate.googleClientId != nil,
+            // Used for Places search; the key is restricted to this app's
+            // bundle ID in Google Cloud, which the requests identify.
+            "mapsApiKey": AppDelegate.mapsApiKey ?? "",
           ])
         default:
           result(FlutterMethodNotImplemented)

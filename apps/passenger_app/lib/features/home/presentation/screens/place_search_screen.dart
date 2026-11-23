@@ -76,6 +76,25 @@ class _PlaceSearchScreenState extends ConsumerState<PlaceSearchScreen> {
     }
   }
 
+  /// Search suggestions get their exact location only once picked.
+  Future<void> _pick(Place place) async {
+    if (!place.needsLookup) {
+      context.pop(place);
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final exact = await ref.read(placesRepositoryProvider).resolve(place);
+      if (mounted) context.pop(exact);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't get that place. Check your connection and try again.")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final pickup = ref.watch(currentLocationProvider).value;
@@ -202,8 +221,8 @@ class _PlaceSearchScreenState extends ConsumerState<PlaceSearchScreen> {
         for (final p in results)
           PlaceTile(
             place: p,
-            from: pickup?.location,
-            onTap: () => context.pop(p),
+            from: p.needsLookup ? null : pickup?.location,
+            onTap: () => _pick(p),
           ),
       ],
     );

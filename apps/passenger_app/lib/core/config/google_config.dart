@@ -11,22 +11,31 @@ class GoogleConfig {
   const GoogleConfig({
     required this.mapsConfigured,
     required this.signInConfigured,
+    this.mapsApiKey,
   });
 
-  const GoogleConfig.none() : mapsConfigured = false, signInConfigured = false;
+  const GoogleConfig.none()
+    : mapsConfigured = false,
+      signInConfigured = false,
+      mapsApiKey = null;
 
   final bool mapsConfigured;
   final bool signInConfigured;
+
+  /// The bundle-restricted Maps key, for Places search requests.
+  final String? mapsApiKey;
 }
 
 const _channel = MethodChannel('ng.rentaride/config');
 
 final googleConfigProvider = FutureProvider<GoogleConfig>((ref) async {
   try {
-    final result = await _channel.invokeMapMethod<String, bool>('googleConfig');
+    final result = await _channel.invokeMapMethod<String, Object?>('googleConfig');
+    final key = result?['mapsApiKey'] as String?;
     return GoogleConfig(
-      mapsConfigured: result?['mapsConfigured'] ?? false,
-      signInConfigured: result?['googleSignInConfigured'] ?? false,
+      mapsConfigured: result?['mapsConfigured'] == true,
+      signInConfigured: result?['googleSignInConfigured'] == true,
+      mapsApiKey: (key == null || key.isEmpty) ? null : key,
     );
   } on MissingPluginException {
     // Platforms without the native channel yet (web, Android for now).

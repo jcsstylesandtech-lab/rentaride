@@ -109,12 +109,18 @@ class Place {
     required this.name,
     required this.address,
     required this.location,
+    this.needsLookup = false,
   });
 
   final String id;
   final String name;
   final String address;
   final GeoPoint location;
+
+  /// A search suggestion whose exact coordinates are fetched only when the
+  /// rider picks it ([PlacesRepository.resolve]). Until then [location] is
+  /// approximate and shouldn't be used for distances.
+  final bool needsLookup;
 
   @override
   bool operator ==(Object other) => other is Place && other.id == id;
@@ -134,6 +140,9 @@ abstract interface class PlacesRepository {
   Future<void> addRecent(Place place);
   Future<Map<SavedPlaceSlot, Place>> savedPlaces();
   Future<void> savePlace(SavedPlaceSlot slot, Place place);
+
+  /// Exact details for a chosen suggestion (no-op for complete places).
+  Future<Place> resolve(Place place);
 }
 
 /// Real Abuja landmarks with their coordinates, held in memory until the
@@ -280,6 +289,9 @@ class DemoPlacesRepository implements PlacesRepository {
     await Future<void>.delayed(latency ~/ 3);
     _saved[slot] = place;
   }
+
+  @override
+  Future<Place> resolve(Place place) async => place;
 }
 
 // ── Nearby drivers ───────────────────────────────────────────────────────
