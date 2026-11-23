@@ -16,7 +16,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture.
 | `apps/passenger_app` | Passenger Flutter app (iOS / Android) | 🚧 Welcome, auth, map home, messages, profile (demo data) |
 | `apps/admin_dashboard` | Next.js + Tailwind admin console on Supabase | 🚧 Overview, driver verification, passengers, rides, payments, SOS, support chats, staff access, audit log |
 | `supabase/migrations` | Database schema (PostgreSQL + PostGIS, row-level security) | ✅ Applied to the Supabase project |
-| `apps/driver_app` | Driver Flutter app | Next |
+| `apps/driver_app` | Driver Flutter app on Supabase | 🚧 Sign-up, verification (licence, vehicle, documents), go online with live location, ride requests, fixed-fare accept / fare offers, trip flow, earnings |
 
 ## Run
 
@@ -26,6 +26,15 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture.
 cd apps/passenger_app
 cp ios/Flutter/Secrets.example.xcconfig ios/Flutter/Secrets.xcconfig   # then add Google keys (docs/GOOGLE_SETUP.md)
 flutter run
+```
+
+**Driver app:**
+
+```bash
+cd apps/driver_app
+cp env/dev.example.json env/dev.json                                   # Supabase URL + publishable key
+cp ios/Flutter/Secrets.example.xcconfig ios/Flutter/Secrets.xcconfig   # Google Maps key
+flutter run --dart-define-from-file=env/dev.json
 ```
 
 **Admin dashboard:**
