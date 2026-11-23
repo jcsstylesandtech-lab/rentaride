@@ -50,14 +50,24 @@ class OtpChallenge {
     required this.phone,
     required this.purpose,
     required this.resendAvailableAt,
+    this.viaEmail = false,
+    this.alreadyVerified = false,
   });
 
   final String id;
 
-  /// E.164 phone number the code was sent to.
+  /// Where the code was sent: an E.164 phone number, or an email address
+  /// when [viaEmail] is true.
   final String phone;
   final OtpPurpose purpose;
   final DateTime resendAvailableAt;
+
+  /// The code was emailed rather than texted.
+  final bool viaEmail;
+
+  /// No code needed: the account is already signed in (for example when
+  /// the backend doesn't require email confirmation).
+  final bool alreadyVerified;
 }
 
 /// Result of verifying a code.

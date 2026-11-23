@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rar_design_system/rar_design_system.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../rides/ride_options_sheet.dart';
 
 import '../../../../app/router/app_routes.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
@@ -564,18 +566,23 @@ class _TripPanel extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: RarSpacing.lg),
-        const RarButton.primary(
+        RarButton.primary(
+          key: const ValueKey('choose-ride'),
           label: 'Choose a ride',
           trailingIcon: Icons.arrow_forward_rounded,
-          onPressed: null,
-          semanticLabel: 'Choose a ride. Available in the next update.',
+          onPressed: AppConfig.hasBackend && pickup != null && estimate != null
+              ? () => showRideOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate)
+              : null,
+          semanticLabel: AppConfig.hasBackend ? null : 'Choose a ride. Needs the live server.',
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Ride options and fare negotiation are the next screens to build.',
-          textAlign: TextAlign.center,
-          style: RarTypography.caption.copyWith(color: RarColors.textMuted),
-        ),
+        if (!AppConfig.hasBackend) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Booking needs the live server — run with env/dev.json.',
+            textAlign: TextAlign.center,
+            style: RarTypography.caption.copyWith(color: RarColors.textMuted),
+          ),
+        ],
         const SizedBox(height: RarSpacing.sm),
         RarButton.outline(
           key: const ValueKey('directions-google-maps'),

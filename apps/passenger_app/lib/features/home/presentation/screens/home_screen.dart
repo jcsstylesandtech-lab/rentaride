@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rar_design_system/rar_design_system.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../rides/ride_status_screen.dart';
+import '../controllers/home_providers.dart';
 
 import '../../../messages/messages.dart';
 import '../../../messages/messages_tab.dart';
@@ -24,6 +27,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _tab = _startTab.clamp(0, 4);
 
   void _goTo(int tab) => setState(() => _tab = tab);
+
+  @override
+  void initState() {
+    super.initState();
+    // Reopen a ride that was still in progress when the app closed.
+    if (AppConfig.hasBackend) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          final active = await ref.read(ridesRepositoryProvider).activeRide();
+          if (active != null && mounted) {
+            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => RideStatusScreen(rideId: active.id)));
+          }
+        } catch (_) {/* offline: the rider can open it from Rides */}
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

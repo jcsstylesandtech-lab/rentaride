@@ -41,6 +41,7 @@ dependencies:
   url_launcher: ^6.3.2
   rar_design_system:
     path: ../../packages/rar_design_system
+  supabase_flutter: ^2.18.3
 
 dev_dependencies:
   flutter_test:

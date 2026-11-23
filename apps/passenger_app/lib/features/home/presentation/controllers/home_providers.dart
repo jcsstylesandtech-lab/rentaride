@@ -1,13 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
+import '../../../../core/config/app_config.dart';
 import '../../../map/map_data.dart';
+import '../../../rides/rides_repository.dart';
 
+/// Supabase when the app is built with its settings, otherwise demo data.
 final placesRepositoryProvider = Provider<PlacesRepository>(
-  (ref) => DemoPlacesRepository(),
+  (ref) => AppConfig.hasBackend
+      ? SupabasePlacesRepository(Supabase.instance.client)
+      : DemoPlacesRepository(),
 );
 
 final nearbyDriversSourceProvider = Provider<NearbyDriversSource>(
-  (ref) => const DemoNearbyDrivers(),
+  (ref) => AppConfig.hasBackend
+      ? SupabaseNearbyDrivers(Supabase.instance.client)
+      : const DemoNearbyDrivers(),
+);
+
+final ridesRepositoryProvider = Provider<RidesRepository>(
+  (ref) => RidesRepository(Supabase.instance.client),
 );
 
 /// The passenger's pickup point (current location).

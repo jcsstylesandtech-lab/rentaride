@@ -46,6 +46,9 @@ class DemoAuthRepository implements AuthRepository {
   @override
   bool get isDemo => true;
 
+  @override
+  bool get supportsPhoneCodes => true;
+
   Future<void> _network() => Future<void>.delayed(latency);
 
   String _id() =>

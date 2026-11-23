@@ -49,7 +49,8 @@ class _LogInScreenState extends ConsumerState<LogInScreen> {
     });
     final auth = ref.read(authControllerProvider.notifier);
     try {
-      if (_method == _Method.phone) {
+      if (_method == _Method.phone &&
+          ref.read(authRepositoryProvider).supportsPhoneCodes) {
         final phone = Validators.normaliseNigerianPhone(_phone.text)!;
         final challenge = await auth.requestLogInCode(phone);
         if (mounted) context.push(AppRoutes.otp, extra: challenge);
@@ -74,6 +75,9 @@ class _LogInScreenState extends ConsumerState<LogInScreen> {
   @override
   Widget build(BuildContext context) {
     final isDemo = ref.watch(authRepositoryProvider).isDemo;
+    // Without SMS codes the backend logs in with email only.
+    final phoneCodes = ref.watch(authRepositoryProvider).supportsPhoneCodes;
+    final method = phoneCodes ? _method : _Method.email;
 
     return AuthScaffold(
       title: 'Welcome back',
@@ -88,7 +92,7 @@ class _LogInScreenState extends ConsumerState<LogInScreen> {
           RarInlineMessage.success(widget.notice!),
           const SizedBox(height: RarSpacing.lg),
         ],
-        SegmentedButton<_Method>(
+        if (phoneCodes) SegmentedButton<_Method>(
           segments: const [
             ButtonSegment(
               value: _Method.phone,
@@ -116,7 +120,7 @@ class _LogInScreenState extends ConsumerState<LogInScreen> {
           child: AutofillGroup(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: _method == _Method.phone
+              children: method == _Method.phone
                   ? [
                       RarTextField(
                         key: const ValueKey('login-phone'),
@@ -175,7 +179,7 @@ class _LogInScreenState extends ConsumerState<LogInScreen> {
         const SizedBox(height: RarSpacing.xl),
         RarButton.primary(
           key: const ValueKey('login-submit'),
-          label: _method == _Method.phone ? 'Send code' : 'Log In',
+          label: method == _Method.phone ? 'Send code' : 'Log In',
           trailingIcon: Icons.arrow_forward_rounded,
           isLoading: _busy,
           onPressed: _submit,

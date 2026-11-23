@@ -41,6 +41,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     super.dispose();
   }
 
+  /// Without SMS codes, the email confirms the account and is the log-in.
+  bool get _emailRequired => !ref.read(authRepositoryProvider).supportsPhoneCodes;
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     final valid = _formKey.currentState!.validate();
@@ -64,7 +67,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               viaGoogle: _viaGoogle,
             ),
           );
-      if (mounted) context.push(AppRoutes.otp, extra: challenge);
+      if (!mounted) return;
+      if (challenge.alreadyVerified) {
+        context.go(AppRoutes.profileSetup);
+      } else {
+        context.push(AppRoutes.otp, extra: challenge);
+      }
     } on AuthFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -125,15 +133,19 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 const SizedBox(height: RarSpacing.lg),
                 RarTextField(
                   enabled: !_viaGoogle,
-                  label: _viaGoogle ? 'Google account' : 'Email (optional)',
+                  label: _viaGoogle
+                      ? 'Google account'
+                      : (_emailRequired ? 'Email' : 'Email (optional)'),
                   hint: 'ada@example.com',
                   controller: _email,
                   prefixIcon: Icons.mail_rounded,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.email],
-                  validator: Validators.optionalEmail,
-                  helper: 'For receipts and logging in with email.',
+                  validator: _emailRequired ? Validators.email : Validators.optionalEmail,
+                  helper: _emailRequired
+                      ? "We'll email you a 6-digit code to confirm it."
+                      : 'For receipts and logging in with email.',
                 ),
                 if (!_viaGoogle) const SizedBox(height: RarSpacing.lg),
                 if (!_viaGoogle)

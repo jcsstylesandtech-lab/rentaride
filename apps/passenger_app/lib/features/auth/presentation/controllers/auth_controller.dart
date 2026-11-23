@@ -1,14 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/config/app_config.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
+
 import '../../data/demo_auth_repository.dart';
+import '../../data/supabase_auth_repository.dart';
 import '../../domain/auth_models.dart';
 import '../../domain/auth_repository.dart';
 
-/// The auth backend. Phase 3 swaps this for the API-backed repository.
+/// The auth backend: Supabase when the app is built with its settings
+/// (`--dart-define-from-file=env/dev.json`), otherwise the in-memory demo.
 final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => DemoAuthRepository(),
+  (ref) => AppConfig.hasBackend
+      ? SupabaseAuthRepository(Supabase.instance.client)
+      : DemoAuthRepository(),
 );
+
+/// The passenger restored from a saved session at launch (set in main).
+final initialUserProvider = Provider<AuthUser?>((ref) => null);
 
 /// The signed-in passenger, or null when signed out.
 final authControllerProvider = NotifierProvider<AuthController, AuthUser?>(
@@ -25,14 +34,19 @@ class AuthController extends Notifier<AuthUser?> {
   static const _demoSignedIn = bool.fromEnvironment('DEMO_SIGNED_IN');
 
   @override
-  AuthUser? build() => _demoSignedIn && !AppConfig.isProduction
-      ? const AuthUser(
-          id: 'demo-user',
-          fullName: 'Ada Okafor',
-          phone: DemoAuthRepository.demoPhone,
-          email: DemoAuthRepository.demoEmail,
-        )
-      : null;
+  AuthUser? build() {
+    final restored = ref.read(initialUserProvider);
+    if (restored != null) return restored;
+    if (_demoSignedIn && !AppConfig.isProduction && !AppConfig.hasBackend) {
+      return const AuthUser(
+        id: 'demo-user',
+        fullName: 'Ada Okafor',
+        phone: DemoAuthRepository.demoPhone,
+        email: DemoAuthRepository.demoEmail,
+      );
+    }
+    return null;
+  }
 
   bool get isDemo => _repo.isDemo;
 
@@ -52,8 +66,11 @@ class AuthController extends Notifier<AuthUser?> {
   Future<OtpChallenge> requestLogInCode(String phone) =>
       _repo.requestOtp(phone: phone, purpose: OtpPurpose.logIn);
 
-  Future<OtpChallenge> startSignUp(SignUpDetails details) =>
-      _repo.startSignUp(details);
+  Future<OtpChallenge> startSignUp(SignUpDetails details) async {
+    final challenge = await _repo.startSignUp(details);
+    if (challenge.alreadyVerified) state = await _repo.currentUser();
+    return challenge;
+  }
 
   Future<OtpChallenge> requestPasswordReset(String emailOrPhone) =>
       _repo.requestPasswordReset(emailOrPhone.trim());

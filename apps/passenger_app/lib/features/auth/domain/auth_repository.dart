@@ -9,6 +9,10 @@ abstract interface class AuthRepository {
   /// True when this is a local demo backend (shows test hints in the UI).
   bool get isDemo;
 
+  /// False when the backend can't send SMS yet: sign-up and log-in then use
+  /// email and password, with codes sent by email.
+  bool get supportsPhoneCodes;
+
   Future<AuthUser?> currentUser();
 
   Future<AuthUser> logInWithEmail({

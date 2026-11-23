@@ -131,11 +131,15 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     final isDemo = ref.watch(authRepositoryProvider).isDemo;
-    final masked = Validators.maskNigerianPhone(_challenge.phone);
+    final masked = _challenge.viaEmail
+        ? _challenge.phone
+        : Validators.maskNigerianPhone(_challenge.phone);
 
     return AuthScaffold(
       title: 'Enter the code',
-      subtitle: 'We sent a 6-digit code by SMS to $masked.',
+      subtitle: _challenge.viaEmail
+          ? 'We emailed a 6-digit code to $masked. Check your inbox (and spam).'
+          : 'We sent a 6-digit code by SMS to $masked.',
       children: [
         RarOtpField(
           controller: _code,
@@ -192,7 +196,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         Center(
           child: TextButton(
             onPressed: _busy ? null : () => context.pop(),
-            child: const Text('Change number'),
+            child: Text(_challenge.viaEmail ? 'Change email' : 'Change number'),
           ),
         ),
         if (isDemo) ...[

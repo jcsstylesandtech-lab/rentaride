@@ -13,7 +13,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture.
 | Path | What | Status |
 |------|------|--------|
 | `packages/rar_design_system` | Shared Flutter design system (tokens, theme, glass components, Poppins) | ✅ |
-| `apps/passenger_app` | Passenger Flutter app (iOS / Android) | 🚧 Welcome, auth, map home, messages, profile (demo data) |
+| `apps/passenger_app` | Passenger Flutter app on Supabase (demo data without env) | 🚧 Email accounts, live cars on the map, booking (fixed fare or offer your price), driver offers, trip tracking, SOS, ratings, support chat, saved places |
 | `apps/admin_dashboard` | Next.js + Tailwind admin console on Supabase | 🚧 Overview, driver verification, passengers, rides, payments, SOS, support chats, staff access, audit log |
 | `supabase/migrations` | Database schema (PostgreSQL + PostGIS, row-level security) | ✅ Applied to the Supabase project |
 | `apps/driver_app` | Driver Flutter app on Supabase | 🚧 Sign-up, verification (licence, vehicle, documents), go online with live location, ride requests, fixed-fare accept / fare offers, trip flow, earnings |
@@ -25,7 +25,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture.
 ```bash
 cd apps/passenger_app
 cp ios/Flutter/Secrets.example.xcconfig ios/Flutter/Secrets.xcconfig   # then add Google keys (docs/GOOGLE_SETUP.md)
-flutter run
+cp env/dev.example.json env/dev.json                                   # Supabase URL + publishable key
+flutter run --dart-define-from-file=env/dev.json   # without the flag it runs on demo data
 ```
 
 **Driver app:**

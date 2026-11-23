@@ -23,5 +23,14 @@ abstract final class AppConfig {
     defaultValue: 'http://localhost:3000',
   );
 
+  /// Supabase project URL and its publishable (browser-safe) key. Security
+  /// comes from the database's row-level rules, not from hiding these.
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const String supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+
+  /// True when built with `--dart-define-from-file=env/dev.json`; otherwise
+  /// the app runs on its built-in demo data.
+  static bool get hasBackend => supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty;
+
   static bool get isProduction => environment == 'prod';
 }

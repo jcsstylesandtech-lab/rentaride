@@ -58,11 +58,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final phoneCodes = ref.watch(authRepositoryProvider).supportsPhoneCodes;
     return AuthScaffold(
       title: 'Reset your password',
-      subtitle:
-          "Enter your account's email or phone number. We'll text a code "
-          'to the phone on your account.',
+      subtitle: phoneCodes
+          ? "Enter your account's email or phone number. We'll text a code "
+                'to the phone on your account.'
+          : "Enter your account's email. We'll email you a 6-digit code.",
       children: [
         Form(
           key: _formKey,

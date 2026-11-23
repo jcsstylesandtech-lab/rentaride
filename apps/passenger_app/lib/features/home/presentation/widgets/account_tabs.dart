@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rar_design_system/rar_design_system.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/config/app_config.dart';
+import '../../../rides/ride_models.dart';
+import '../../../rides/ride_status_screen.dart';
+import '../controllers/home_providers.dart';
 
 /// A scrolling tab page with a large title (Rides, Messages, Wallet,
 /// Profile).
@@ -86,26 +92,90 @@ class EmptyState extends StatelessWidget {
 }
 
 /// Trip history (empty until rides can be booked).
-class RidesTab extends StatelessWidget {
+/// Past and current rides from the passenger's account.
+final rideHistoryProvider = FutureProvider.autoDispose<List<PassengerRide>>(
+  (ref) => AppConfig.hasBackend ? ref.read(ridesRepositoryProvider).history() : Future.value(const []),
+);
+
+class RidesTab extends ConsumerWidget {
   const RidesTab({super.key, required this.onBookRide});
   final VoidCallback onBookRide;
 
   @override
-  Widget build(BuildContext context) => TabPage(
-    title: 'Your rides',
-    children: [
-      EmptyState(
-        icon: Icons.directions_car_rounded,
-        title: 'No rides yet',
-        body: 'Your trips, receipts and driver ratings will appear here.',
-        action: RarButton.primary(
-          label: 'Book a ride',
-          trailingIcon: Icons.arrow_forward_rounded,
-          onPressed: onBookRide,
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(rideHistoryProvider);
+    final empty = EmptyState(
+      icon: Icons.directions_car_rounded,
+      title: 'No rides yet',
+      body: 'Your trips, receipts and driver ratings will appear here.',
+      action: RarButton.primary(
+        label: 'Book a ride',
+        trailingIcon: Icons.arrow_forward_rounded,
+        onPressed: onBookRide,
       ),
-    ],
-  );
+    );
+    return TabPage(
+      title: 'Your rides',
+      children: history.when(
+        loading: () => const [Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))],
+        error: (_, _) => [
+          EmptyState(
+            icon: Icons.wifi_off_rounded,
+            title: "Couldn't load your rides",
+            body: 'Check your connection and try again.',
+            action: RarButton.outline(label: 'Try again', onPressed: () => ref.invalidate(rideHistoryProvider)),
+          ),
+        ],
+        data: (rides) => rides.isEmpty
+            ? [empty]
+            : [
+                for (final r in rides)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: RarSpacing.sm),
+                    child: Material(
+                      color: RarColors.white,
+                      borderRadius: RarRadius.card,
+                      child: InkWell(
+                        borderRadius: RarRadius.card,
+                        onTap: () => Navigator.of(context)
+                            .push(MaterialPageRoute<void>(builder: (_) => RideStatusScreen(rideId: r.id)))
+                            .then((_) => ref.invalidate(rideHistoryProvider)),
+                        child: Container(
+                          padding: const EdgeInsets.all(RarSpacing.md),
+                          decoration: BoxDecoration(
+                            borderRadius: RarRadius.card,
+                            border: Border.all(color: RarColors.outlineLight),
+                          ),
+                          child: Row(children: [
+                            Icon(r.option.icon, color: RarColors.royal),
+                            const SizedBox(width: RarSpacing.md),
+                            Expanded(
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(r.dropoffAddress, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                    style: RarTypography.titleSmall.copyWith(color: RarColors.navy)),
+                                Text(
+                                  '${_date(r.requestedAt)} · ${r.option.label} · ${r.status.replaceAll('_', ' ')}',
+                                  style: RarTypography.caption.copyWith(color: RarColors.textSecondary),
+                                ),
+                              ]),
+                            ),
+                            Text(nairaKobo(r.fareKobo),
+                                style: RarTypography.titleSmall.copyWith(color: RarColors.navy)),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+      ),
+    );
+  }
+
+  static String _date(DateTime t) {
+    const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final l = t.toLocal();
+    return '${l.day} ${m[l.month - 1]}, ${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
+  }
 }
 
 /// Wallet balance and transactions. Funding arrives with Paystack /
