@@ -37,7 +37,10 @@ class AppGate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Sign-in opens on top of the intro page. When the session changes, close
     // everything above the gate so the driver sees the right screen at once.
+    // A password reset signs the driver in partway through; its screen
+    // closes itself once the new password is saved.
     ref.listen(sessionProvider, (prev, next) {
+      if (ref.read(passwordResetInProgressProvider)) return;
       if (prev?.value != next.value) {
         DriverApp.navigatorKey.currentState?.popUntil((route) => route.isFirst);
       }

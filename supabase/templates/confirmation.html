@@ -1,0 +1,10 @@
+<!-- Supabase → Authentication → Emails → "Confirm signup".
+     Subject: Confirm your Rent A Ride account
+     Passengers type the code in the app; drivers tap the link. Keep both. -->
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#061B49">
+  <h2 style="margin:0 0 12px">Welcome to Rent A Ride</h2>
+  <p>Enter this code in the app to confirm your email:</p>
+  <p style="font-size:32px;font-weight:bold;letter-spacing:6px;margin:16px 0;color:#0866FF">{{ .Token }}</p>
+  <p>Or confirm with this link: <a href="{{ .ConfirmationURL }}">Confirm my email</a></p>
+  <p>If you didn't create an account, you can ignore this email.</p>
+</div>

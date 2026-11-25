@@ -1,0 +1,10 @@
+<!-- Supabase → Authentication → Emails → "Reset password".
+     Subject: Your Rent A Ride password reset code
+     The passenger and driver apps ask for this code; do not replace it with
+     a link only (links can't be opened by the app that requested them). -->
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#061B49">
+  <h2 style="margin:0 0 12px">Reset your Rent A Ride password</h2>
+  <p>Enter this code in the Rent A Ride app to choose a new password:</p>
+  <p style="font-size:32px;font-weight:bold;letter-spacing:6px;margin:16px 0;color:#0866FF">{{ .Token }}</p>
+  <p>The code expires in 1 hour. If you didn't ask to reset your password, you can ignore this email — your password stays the same.</p>
+</div>

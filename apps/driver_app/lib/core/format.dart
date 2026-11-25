@@ -28,6 +28,14 @@ String friendlyError(Object e) {
   final msg = (m?.group(1) ?? s).replaceFirst(RegExp(r'^(Exception|AuthException|PostgrestException)[:(]\s*'), '');
   if (msg.contains('Invalid login credentials')) return 'Wrong email or password.';
   if (msg.contains('Email not confirmed')) return 'Confirm your email first — check your inbox.';
+  final lower = msg.toLowerCase();
+  if (lower.contains('expired') || (lower.contains('invalid') && lower.contains('token'))) {
+    return 'That code is wrong or has expired. Check it, or send a new code.';
+  }
+  if (lower.contains('should be different')) return 'Choose a password different from your old one.';
+  if (lower.contains('rate limit') || lower.contains('security purposes')) {
+    return 'Too many attempts. Wait a minute and try again.';
+  }
   if (msg.contains('SocketException') || msg.contains('Failed host lookup')) {
     return 'No internet connection. Check your network and try again.';
   }

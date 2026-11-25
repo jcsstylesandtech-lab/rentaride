@@ -5,6 +5,7 @@ import 'package:rar_design_system/rar_design_system.dart';
 import '../core/format.dart';
 import '../state/providers.dart';
 import '../widgets/common.dart';
+import 'forgot_password_screen.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key, this.startWithSignUp = false});
@@ -123,6 +124,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const SizedBox(height: RarSpacing.md),
               Panel(child: Text(_notice!, style: RarTypography.bodySmall.copyWith(color: RarColors.cyan))),
             ],
+            if (!_signUp)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  key: const ValueKey('forgot-password'),
+                  onPressed: _busy
+                      ? null
+                      : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                            builder: (_) => ForgotPasswordScreen(initialEmail: _email.text.trim()),
+                          )),
+                  child: const Text('Forgot password?'),
+                ),
+              ),
             const SizedBox(height: RarSpacing.xl),
             RarButton.primary(
               key: const ValueKey('auth-submit'),

@@ -29,6 +29,19 @@ class DriverRepository {
 
   Future<void> signOut() => _db.auth.signOut();
 
+  /// Emails a reset code. The Supabase "Reset password" email template must
+  /// include `{{ .Token }}` (see supabase/templates/recovery.html).
+  Future<void> sendPasswordResetCode(String email) =>
+      _db.auth.resetPasswordForEmail(email);
+
+  /// Checks the emailed reset code. Success signs the driver in.
+  Future<void> verifyPasswordResetCode({required String email, required String code}) =>
+      _db.auth.verifyOTP(email: email, token: code, type: OtpType.recovery);
+
+  /// Saves a new password for the signed-in driver.
+  Future<void> setNewPassword(String password) =>
+      _db.auth.updateUser(UserAttributes(password: password));
+
   Future<Profile?> myProfile() async {
     final row = await _db.from('profiles').select().eq('id', _uid).maybeSingle();
     return row == null ? null : Profile.fromJson(row);

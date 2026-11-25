@@ -17,6 +17,19 @@ final sessionProvider = StreamProvider<String?>((ref) async* {
   }
 });
 
+/// True while a password reset is running. Checking the reset code signs the
+/// driver in; the gate must not close the reset screen until the new password
+/// is saved.
+final passwordResetInProgressProvider =
+    NotifierProvider<PasswordResetInProgress, bool>(PasswordResetInProgress.new);
+
+class PasswordResetInProgress extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
 /// Everything the onboarding / home screens need about this driver.
 class DriverState {
   const DriverState({required this.profile, required this.driver, required this.vehicles, required this.documents});
