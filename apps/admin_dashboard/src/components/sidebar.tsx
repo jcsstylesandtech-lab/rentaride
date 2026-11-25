@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard, ShieldCheck, Users, Car, Wallet, Siren, MessagesSquare, UserCog, ScrollText, Settings, LogOut,
   PanelLeft, Pin, MousePointer2, Sparkles, Check,
+  SlidersHorizontal, BellRing,
 } from "lucide-react";
 import { Logo } from "./logo";
 import { useStaff } from "./staff-context";
@@ -26,6 +27,8 @@ const MAIN: Item[] = [
   { href: "/payments", label: "Payments", icon: Wallet, show: can.seeMoney },
   { href: "/safety", label: "Safety & SOS", icon: Siren },
   { href: "/support", label: "Support chats", icon: MessagesSquare },
+  { href: "/notifications", label: "Notifications", icon: BellRing, show: can.sendNotifications },
+  { href: "/app-control", label: "App control", icon: SlidersHorizontal, show: can.controlApp },
 ];
 const DRIVERS: Item[] = [
   { href: "/drivers", label: "All drivers", icon: ShieldCheck, service: "all" },

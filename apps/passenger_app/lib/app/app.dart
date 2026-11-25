@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:rar_design_system/rar_design_system.dart';
 
+import '../features/app_control/app_control.dart';
 import 'router/app_router.dart';
 
 class RentARideApp extends ConsumerWidget {
@@ -30,7 +31,8 @@ class RentARideApp extends ConsumerWidget {
             // Blur is costly on low-end GPUs; users who ask the OS to
             // reduce motion/effects get the cheaper, non-blurred glass.
             blurEnabled: !media.disableAnimations,
-            child: child!,
+            // Maintenance, announcements and notification pop-ups from the dashboard.
+            child: AppControlShell(child: child!),
           ),
         );
       },

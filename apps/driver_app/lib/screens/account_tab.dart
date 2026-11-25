@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rar_design_system/rar_design_system.dart';
 
 import '../core/format.dart';
+import '../state/app_control.dart';
 import '../state/providers.dart';
 import '../widgets/common.dart';
 
@@ -70,6 +71,22 @@ class AccountTab extends ConsumerWidget {
         if (v != null) row(Icons.directions_car_rounded, 'Vehicle', '${v.title} · ${v.plateNumber}', trailing: StatusChip(v.review)),
         if (v != null) row(Icons.category_rounded, 'Ride type', titleCase(v.vehicleClass.name == 'suv' ? 'SUV' : v.vehicleClass.name)),
       ])),
+      const SizedBox(height: RarSpacing.lg),
+      Panel(
+        padding: const EdgeInsets.symmetric(horizontal: RarSpacing.lg, vertical: RarSpacing.xs),
+        child: ListTile(
+          key: const ValueKey('open-notifications'),
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.notifications_rounded, color: RarColors.cyan),
+          title: Text('Notifications', style: RarTypography.body.copyWith(color: RarColors.white)),
+          subtitle: Text(() {
+            final unread = (ref.watch(notificationsProvider).value ?? const []).where((n) => !n.read).length;
+            return unread == 0 ? 'Trip updates and messages from Rent A Ride' : '$unread new';
+          }(), style: onDarkMuted),
+          trailing: const Icon(Icons.chevron_right_rounded, color: RarColors.textOnDarkMuted),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NotificationsScreen())),
+        ),
+      ),
       const SizedBox(height: RarSpacing.lg),
       Text('Documents', style: RarTypography.titleSmall.copyWith(color: RarColors.white)),
       const SizedBox(height: RarSpacing.sm),

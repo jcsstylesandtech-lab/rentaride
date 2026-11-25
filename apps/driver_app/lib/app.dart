@@ -7,6 +7,7 @@ import 'core/format.dart';
 import 'screens/home_screen.dart';
 import 'screens/intro_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'state/app_control.dart';
 import 'state/providers.dart';
 import 'widgets/common.dart';
 
@@ -24,6 +25,8 @@ class DriverApp extends StatelessWidget {
       title: 'Rent A Ride Driver',
       debugShowCheckedModeBanner: false,
       theme: RarTheme.dark(),
+      // Maintenance, announcements and notification pop-ups from the dashboard.
+      builder: (context, child) => AppControlShell(child: child!),
       home: AppConfig.isConfigured ? const AppGate() : const _NotConfigured(),
     );
   }

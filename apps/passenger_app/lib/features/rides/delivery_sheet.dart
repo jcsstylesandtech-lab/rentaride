@@ -5,6 +5,7 @@ import 'package:rar_design_system/rar_design_system.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../core/validation/validators.dart';
+import '../app_control/app_control.dart';
 import '../home/presentation/controllers/home_providers.dart';
 import '../map/map_data.dart';
 import 'ride_models.dart';
@@ -87,6 +88,13 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final control = ref.watch(appSettingsProvider).value ?? const AppSettings();
+    // If the chosen kind was switched off, move to one that is on.
+    if (!control.serviceEnabled(_option.service)) {
+      final open = DeliveryOption.values.where((o) => control.serviceEnabled(o.service) && o.carries(_size));
+      if (open.isNotEmpty) _option = open.first;
+    }
+    final canSend = control.serviceEnabled(_option.service);
     return Theme(
       data: RarTheme.light(),
       child: SafeArea(
@@ -126,7 +134,8 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
                       option: o,
                       fare: o.fareNaira(widget.estimate, _size),
                       selected: o == _option,
-                      enabled: o.carries(_size),
+                      enabled: o.carries(_size) && control.serviceEnabled(o.service),
+                      disabledReason: control.serviceEnabled(o.service) ? 'Too small for a large package' : 'Paused right now',
                       onTap: () => setState(() => _option = o),
                     ),
                   const SizedBox(height: RarSpacing.sm),
@@ -181,7 +190,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
                     key: const ValueKey('request-delivery'),
                     label: 'Request ${_option.label} · ${formatNaira(_fare)}',
                     isLoading: _busy,
-                    onPressed: _busy ? null : _request,
+                    onPressed: _busy || !canSend ? null : _request,
                   ),
                 ],
               ),
@@ -195,7 +204,8 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
 
 class _DeliveryTile extends StatelessWidget {
   const _DeliveryTile({required this.option, required this.fare, required this.selected,
-      required this.enabled, required this.onTap});
+      required this.enabled, required this.onTap, this.disabledReason = 'Too small for a large package'});
+  final String disabledReason;
   final DeliveryOption option;
   final int fare;
   final bool selected;
@@ -226,7 +236,7 @@ class _DeliveryTile extends StatelessWidget {
                 const SizedBox(width: RarSpacing.md),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(option.label, style: RarTypography.titleSmall.copyWith(color: RarColors.navy)),
-                  Text(enabled ? option.blurb : 'Too small for a large package',
+                  Text(enabled ? option.blurb : disabledReason,
                       style: RarTypography.caption.copyWith(color: RarColors.textSecondary)),
                 ])),
                 Text(formatNaira(fare), style: RarTypography.titleSmall.copyWith(color: RarColors.navy)),

@@ -25,4 +25,6 @@ export const can = {
   seeMoney: (r: StaffRole) => ["super_admin", "finance"].includes(r),
   manageStaff: (r: StaffRole) => r === "super_admin",
   seeAudit: (r: StaffRole) => ["super_admin", "operations"].includes(r),
+  controlApp: (r: StaffRole) => ["super_admin", "operations"].includes(r),
+  sendNotifications: (r: StaffRole) => ["super_admin", "operations", "support"].includes(r),
 };

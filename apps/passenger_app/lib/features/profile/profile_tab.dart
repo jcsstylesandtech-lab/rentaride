@@ -5,6 +5,7 @@ import 'package:rar_design_system/rar_design_system.dart';
 
 import '../../app/router/app_routes.dart';
 import '../../core/validation/validators.dart';
+import '../app_control/app_control.dart';
 import '../auth/domain/auth_models.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
 import '../home/presentation/controllers/home_providers.dart';
@@ -318,6 +319,23 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
               value: 'Discounts and new features',
               on: _promotions,
               onChanged: (v) => setState(() => _promotions = v),
+            ),
+          ],
+        ),
+
+        _Section(
+          title: 'Updates',
+          children: [
+            _Row(
+              icon: Icons.notifications_rounded,
+              title: 'Notifications',
+              value: () {
+                final unread = (ref.watch(notificationsProvider).value ?? const []).where((n) => !n.read).length;
+                return unread == 0 ? 'Trip updates and news from Rent A Ride' : '$unread new';
+              }(),
+              highlight: (ref.watch(notificationsProvider).value ?? const []).any((n) => !n.read),
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const NotificationsScreen())),
             ),
           ],
         ),

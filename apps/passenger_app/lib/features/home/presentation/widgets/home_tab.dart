@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:rar_design_system/rar_design_system.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../app_control/app_control.dart';
 import '../../../rides/delivery_sheet.dart';
 import '../../../rides/ride_options_sheet.dart';
 
@@ -499,6 +500,8 @@ class _TripPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final estimate = ref.watch(tripEstimateProvider);
+    final control = ref.watch(appSettingsProvider).value ?? const AppSettings();
+    final ready = AppConfig.hasBackend && pickup != null && estimate != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -571,7 +574,7 @@ class _TripPanel extends ConsumerWidget {
           key: const ValueKey('choose-ride'),
           label: 'Choose a ride',
           trailingIcon: Icons.arrow_forward_rounded,
-          onPressed: AppConfig.hasBackend && pickup != null && estimate != null
+          onPressed: ready && control.ridesEnabled
               ? () => showRideOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate)
               : null,
           semanticLabel: AppConfig.hasBackend ? null : 'Choose a ride. Needs the live server.',
@@ -581,10 +584,21 @@ class _TripPanel extends ConsumerWidget {
           key: const ValueKey('send-package'),
           label: 'Send a package',
           leadingIcon: Icons.inventory_2_rounded,
-          onPressed: AppConfig.hasBackend && pickup != null && estimate != null
+          onPressed: ready && control.anyDeliveryEnabled
               ? () => showDeliveryOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate)
               : null,
         ),
+        if (!control.ridesEnabled || !control.anyDeliveryEnabled) ...[
+          const SizedBox(height: 6),
+          Text(
+            [
+              if (!control.ridesEnabled) 'Ride booking',
+              if (!control.anyDeliveryEnabled) 'Package delivery',
+            ].join(' and ') + ' is paused right now. Please try again later.',
+            textAlign: TextAlign.center,
+            style: RarTypography.caption.copyWith(color: RarColors.textMuted),
+          ),
+        ],
         if (!AppConfig.hasBackend) ...[
           const SizedBox(height: 6),
           Text(
