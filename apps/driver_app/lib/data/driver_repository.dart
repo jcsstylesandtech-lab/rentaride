@@ -53,6 +53,12 @@ class DriverRepository {
     return row == null ? null : Driver.fromJson(row);
   }
 
+  /// First onboarding step: creates the driver record with the chosen service,
+  /// or changes it while the application is still being reviewed.
+  Future<void> chooseService(ServiceType service, {required bool registered}) => registered
+      ? _db.from('drivers').update({'service_type': service.name}).eq('id', _uid)
+      : _db.from('drivers').insert({'id': _uid, 'service_type': service.name});
+
   Future<void> register(String licenceNumber) =>
       _db.from('drivers').insert({'id': _uid, 'licence_number': licenceNumber});
 

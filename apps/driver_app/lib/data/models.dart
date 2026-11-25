@@ -2,6 +2,17 @@ import 'dart:typed_data';
 
 enum DriverStatus { pending, approved, rejected, suspended }
 
+/// What the driver does on Rent A Ride (drivers.service_type).
+enum ServiceType {
+  ride('Ride driver', 'Carry passengers in your car'),
+  dispatch('Dispatch rider', 'Deliver small packages on a motorbike'),
+  delivery('Delivery driver', 'Move parcels and goods with a car or van');
+
+  const ServiceType(this.label, this.hint);
+  final String label;
+  final String hint;
+}
+
 enum VehicleClass { economy, comfort, premium, suv, motorcycle }
 
 enum DocumentType {
@@ -45,9 +56,10 @@ class Profile {
 
 class Driver {
   const Driver({required this.id, required this.status, required this.licenceNumber,
-      required this.isOnline, required this.rejectionReason});
+      required this.isOnline, required this.rejectionReason, this.serviceType = ServiceType.ride});
   final String id;
   final DriverStatus status;
+  final ServiceType serviceType;
   final String? licenceNumber;
   final bool isOnline;
   final String? rejectionReason;
@@ -55,6 +67,7 @@ class Driver {
   factory Driver.fromJson(Map<String, dynamic> j) => Driver(
         id: j['id'] as String,
         status: DriverStatus.values.byName(j['status'] as String),
+        serviceType: ServiceType.values.asNameMap()[j['service_type']] ?? ServiceType.ride,
         licenceNumber: j['licence_number'] as String?,
         isOnline: j['is_online'] as bool? ?? false,
         rejectionReason: j['rejection_reason'] as String?,

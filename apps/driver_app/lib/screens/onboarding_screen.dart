@@ -68,6 +68,48 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  Future<void> _chooseService(DriverState s) async {
+    final current = s.driver?.serviceType;
+    final picked = await showModalBottomSheet<ServiceType>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: RarColors.navy900,
+      builder: (ctx) => _Sheet(
+        title: 'What will you do?',
+        children: [
+          for (final t in ServiceType.values)
+            Padding(
+              padding: const EdgeInsets.only(bottom: RarSpacing.sm),
+              child: InkWell(
+                key: ValueKey('service-${t.name}'),
+                borderRadius: RarRadius.card,
+                onTap: () => Navigator.pop(ctx, t),
+                child: Panel(
+                borderColor: t == current ? RarColors.cyan : null,
+                child: Row(children: [
+                  Icon(_serviceIcon(t), color: RarColors.cyan),
+                  const SizedBox(width: RarSpacing.md),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(t.label, style: RarTypography.titleSmall.copyWith(color: RarColors.white)),
+                    Text(t.hint, style: onDarkMuted),
+                  ])),
+                  if (t == current) const Icon(Icons.check_circle_rounded, color: RarColors.cyan),
+                ]),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (picked == null || picked == current) return;
+    try {
+      await ref.read(repoProvider).chooseService(picked, registered: s.driver != null);
+      _refresh();
+    } catch (e) {
+      if (mounted) showSnack(context, friendlyError(e), error: true);
+    }
+  }
+
   Future<void> _editVehicle(Vehicle? v) async {
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -115,6 +157,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final s = ref.watch(driverStateProvider).value;
     if (s == null) return const LoadingScreen();
     final docs = s.latestDocs;
+    final serviceDone = s.driver != null;
     final licenceDone = s.driver?.licenceNumber?.isNotEmpty == true;
     final vehicleDone = s.vehicles.isNotEmpty;
     final docsDone = s.docsComplete;
@@ -141,13 +184,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             _StatusBanner(state: s, allDone: allDone),
             const SizedBox(height: RarSpacing.lg),
             _Step(
-              number: 1, done: licenceDone, title: "Driver's licence",
-              subtitle: licenceDone ? s.driver!.licenceNumber! : 'Add your licence number',
-              action: s.approved ? null : (licenceDone ? 'Edit' : 'Add'),
-              onAction: () => _editLicence(s),
+              number: 1, done: serviceDone, title: 'What you will do',
+              subtitle: serviceDone ? s.driver!.serviceType.label : 'Ride driver, dispatch rider or delivery driver',
+              action: s.approved ? null : (serviceDone ? 'Change' : 'Choose'),
+              onAction: () => _chooseService(s),
             ),
             _Step(
-              number: 2, done: vehicleDone, title: 'Your vehicle',
+              number: 2, done: licenceDone, title: "Driver's licence",
+              subtitle: licenceDone ? s.driver!.licenceNumber! : 'Add your licence number',
+              action: s.approved || !serviceDone ? null : (licenceDone ? 'Edit' : 'Add'),
+              onAction: () => _editLicence(s),
+              locked: !serviceDone,
+            ),
+            _Step(
+              number: 3, done: vehicleDone, title: 'Your vehicle',
               subtitle: vehicleDone ? s.vehicles.first.title : 'Make, model, colour and plate number',
               trailing: vehicleDone ? StatusChip(s.vehicles.first.review) : null,
               action: !licenceDone ? null : (vehicleDone ? 'Edit' : 'Add'),
@@ -155,7 +205,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               locked: !licenceDone,
             ),
             _Step(
-              number: 3, done: docsDone, title: 'Documents',
+              number: 4, done: docsDone, title: 'Documents',
               subtitle: 'Clear photos. Our team reviews each one.',
               locked: !licenceDone,
             ),
@@ -390,3 +440,9 @@ class _VehicleSheetState extends ConsumerState<_VehicleSheet> {
     );
   }
 }
+
+IconData _serviceIcon(ServiceType t) => switch (t) {
+      ServiceType.ride => Icons.directions_car_rounded,
+      ServiceType.dispatch => Icons.two_wheeler_rounded,
+      ServiceType.delivery => Icons.local_shipping_rounded,
+    };
