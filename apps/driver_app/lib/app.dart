@@ -13,23 +13,35 @@ import 'widgets/common.dart';
 class DriverApp extends StatelessWidget {
   const DriverApp({super.key});
 
+  /// Lets the gate close pages opened on top of it (sign-in, settings…)
+  /// when the driver signs in or out.
+  static final navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Rent A Ride Driver',
       debugShowCheckedModeBanner: false,
       theme: RarTheme.dark(),
-      home: AppConfig.isConfigured ? const _Gate() : const _NotConfigured(),
+      home: AppConfig.isConfigured ? const AppGate() : const _NotConfigured(),
     );
   }
 }
 
 /// Signed out → sign in. Not yet approved → onboarding. Approved → drive.
-class _Gate extends ConsumerWidget {
-  const _Gate();
+class AppGate extends ConsumerWidget {
+  const AppGate({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Sign-in opens on top of the intro page. When the session changes, close
+    // everything above the gate so the driver sees the right screen at once.
+    ref.listen(sessionProvider, (prev, next) {
+      if (prev?.value != next.value) {
+        DriverApp.navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      }
+    });
     final session = ref.watch(sessionProvider);
     if (session.isLoading && !session.hasValue) return const LoadingScreen();
     if (session.value == null) return const IntroScreen();

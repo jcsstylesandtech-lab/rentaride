@@ -1,0 +1,82 @@
+# Tests the passenger and driver apps and builds their web versions.
+# Flutter can't run on the team Mac (macOS 13), so web builds happen here.
+# Download the "web-passenger_app" / "web-driver_app" artifacts and deploy
+# them to Vercel (rentaride-passenger / rentaride-driver).
+name: Web builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/passenger_app/**"
+      - "apps/driver_app/**"
+      - "packages/**"
+      - ".github/workflows/web-builds.yml"
+
+jobs:
+  web:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [passenger_app, driver_app]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.10"
+          channel: stable
+          cache: true
+
+      - name: Add web support if missing
+        run: test -d web || flutter create --platforms=web .
+
+      - name: Write app settings (from secrets)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          mkdir -p env
+          python3 - <<'PY'
+          import json, os
+          json.dump({"APP_ENV": "prod",
+                     "SUPABASE_URL": os.environ["SUPABASE_URL"],
+                     "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"]},
+                    open("env/dev.json", "w"))
+          PY
+
+      - run: flutter pub get
+
+      - name: Test
+        run: flutter test
+
+      - name: Build web
+        run: flutter build web --release --dart-define-from-file=env/dev.json
+
+      - name: Load Google Maps on the web page
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          p = "build/web/index.html"
+          s = open(p).read()
+          tag = ('<script src="https://maps.googleapis.com/maps/api/js?key='
+                 + os.environ["GOOGLE_MAPS_API_KEY"] + '"></script>\n')
+          if "maps.googleapis.com" not in s:
+              s = s.replace("</head>", tag + "</head>", 1)
+          open(p, "w").write(s)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-${{ matrix.app }}
+          path: apps/${{ matrix.app }}/build/web
+          retention-days: 14
