@@ -12,8 +12,12 @@ import 'package:rent_a_ride_driver/state/providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Stands in for Supabase: records calls and signs in when the code is right.
-class _FakeRepo extends DriverRepository {
-  _FakeRepo(this.session) : super(SupabaseClient('http://localhost', 'test-key'));
+class _FakeRepo implements DriverRepository {
+  _FakeRepo(this.session);
+
+  // Methods this test doesn't use.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   final StreamController<String?> session;
   final calls = <String>[];
