@@ -40,6 +40,45 @@ class RidesRepository {
     return row['id'] as String;
   }
 
+  /// A dispatch or delivery order: same trip as a ride, plus who receives it.
+  Future<String> requestDelivery({
+    required Place pickup,
+    required Place dropoff,
+    required DeliveryOption option,
+    required PackageSize size,
+    required TripEstimate estimate,
+    required int fareKobo,
+    required String recipientName,
+    required String recipientPhone,
+    String? note,
+  }) async {
+    final row = await _db.from('rides').insert({
+      'passenger_id': _uid,
+      'service_type': option.service,
+      'vehicle_class': option.vehicleClass,
+      'pricing_mode': 'fixed',
+      'pickup_location': _point(pickup.location),
+      'pickup_address': '${pickup.name}, ${pickup.address}',
+      'dropoff_location': _point(dropoff.location),
+      'dropoff_address': '${dropoff.name}, ${dropoff.address}',
+      'distance_m': (estimate.distanceKm * 1000).round(),
+      'duration_s': estimate.durationMin * 60,
+      'estimated_fare_kobo': fareKobo,
+      'payment_method': 'cash',
+      'recipient_name': recipientName,
+      'recipient_phone': recipientPhone,
+      'package_size': size.db,
+      if (note != null && note.trim().isNotEmpty) 'package_note': note.trim(),
+    }).select('id').single();
+    return row['id'] as String;
+  }
+
+  /// Current search area and matching drivers in it, while waiting.
+  Future<SearchStatus?> searchStatus(String rideId) async {
+    final rows = await _db.rpc('ride_search_status', params: {'p_ride_id': rideId}) as List;
+    return rows.isEmpty ? null : SearchStatus.fromJson(rows.first as Map<String, dynamic>);
+  }
+
   Future<PassengerRide> ride(String id) async =>
       PassengerRide.fromJson(await _db.from('rides').select().eq('id', id).single());
 

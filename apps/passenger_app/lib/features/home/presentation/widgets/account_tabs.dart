@@ -147,14 +147,14 @@ class RidesTab extends ConsumerWidget {
                             border: Border.all(color: RarColors.outlineLight),
                           ),
                           child: Row(children: [
-                            Icon(r.option.icon, color: RarColors.royal),
+                            Icon(r.delivery?.icon ?? r.option.icon, color: RarColors.royal),
                             const SizedBox(width: RarSpacing.md),
                             Expanded(
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text(r.dropoffAddress, maxLines: 1, overflow: TextOverflow.ellipsis,
                                     style: RarTypography.titleSmall.copyWith(color: RarColors.navy)),
                                 Text(
-                                  '${_date(r.requestedAt)} · ${r.option.label} · ${r.status.replaceAll('_', ' ')}',
+                                  '${_date(r.requestedAt)} · ${r.optionLabel} · ${r.status.replaceAll('_', ' ')}',
                                   style: RarTypography.caption.copyWith(color: RarColors.textSecondary),
                                 ),
                               ]),

@@ -310,6 +310,9 @@ class _RequestCard extends StatelessWidget {
           const SizedBox(height: RarSpacing.sm),
           _Place(icon: Icons.trip_origin_rounded, color: RarColors.cyan, text: r.pickupAddress),
           _Place(icon: Icons.location_on_rounded, color: RarColors.danger, text: r.dropoffAddress),
+          if (r.service != ServiceType.ride)
+            _Place(icon: Icons.inventory_2_rounded, color: RarColors.warning,
+                text: '${titleCase(r.packageSize ?? 'package')} package${r.packageNote == null ? '' : ' — ${r.packageNote}'}'),
           const SizedBox(height: RarSpacing.sm),
           Text('${r.passengerName} · ★ ${r.passengerRating.toStringAsFixed(1)} · ${km(r.distanceM)} trip · ${titleCase(r.vehicleClass)} · ${timeAgo(r.requestedAt)}',
               style: onDarkMuted),
@@ -323,7 +326,7 @@ class _RequestCard extends StatelessWidget {
           else if (r.negotiable)
             RarButton.primary(label: 'Make an offer', leadingIcon: Icons.handshake_rounded, isLoading: busy, onPressed: busy ? null : onOffer)
           else
-            RarButton.primary(label: 'Accept ride', leadingIcon: Icons.check_rounded, isLoading: busy, onPressed: busy ? null : onAccept),
+            RarButton.primary(label: r.service == ServiceType.ride ? 'Accept ride' : 'Accept delivery', leadingIcon: Icons.check_rounded, isLoading: busy, onPressed: busy ? null : onAccept),
         ]),
       ),
     );
@@ -416,11 +419,17 @@ class _TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (String heading, String action, String next) = switch (trip.status) {
-      'accepted' => ('Heading to pickup', "I've arrived", 'driver_arrived'),
-      'driver_arrived' => ('Waiting for passenger', 'Start trip', 'in_progress'),
-      _ => ('On trip', 'Complete trip', 'completed'),
-    };
+    final (String heading, String action, String next) = trip.isDelivery
+        ? switch (trip.status) {
+            'accepted' => ('Going to collect', "I've arrived", 'driver_arrived'),
+            'driver_arrived' => ('Collect the package', 'Package collected', 'in_progress'),
+            _ => ('Delivering', 'Delivered', 'completed'),
+          }
+        : switch (trip.status) {
+            'accepted' => ('Heading to pickup', "I've arrived", 'driver_arrived'),
+            'driver_arrived' => ('Waiting for passenger', 'Start trip', 'in_progress'),
+            _ => ('On trip', 'Complete trip', 'completed'),
+          };
     return Panel(
       borderColor: RarColors.cyan.withValues(alpha: 0.6),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -434,12 +443,28 @@ class _TripCard extends StatelessWidget {
         Row(children: [
           const CircleAvatar(backgroundColor: RarColors.navy700, child: Icon(Icons.person_rounded, color: RarColors.white)),
           const SizedBox(width: RarSpacing.md),
-          Expanded(child: Text(passenger == null ? 'Loading passenger…' : '${passenger!.name} · ★ ${passenger!.rating.toStringAsFixed(1)}',
+          Expanded(child: Text(passenger == null ? 'Loading…' : '${trip.isDelivery ? 'Sender: ' : ''}${passenger!.name} · ★ ${passenger!.rating.toStringAsFixed(1)}',
               style: RarTypography.titleSmall.copyWith(color: RarColors.white))),
         ]),
         const SizedBox(height: RarSpacing.md),
         _Place(icon: Icons.trip_origin_rounded, color: RarColors.cyan, text: trip.pickupAddress),
         _Place(icon: Icons.location_on_rounded, color: RarColors.danger, text: trip.dropoffAddress),
+        if (trip.isDelivery) ...[
+          const SizedBox(height: RarSpacing.sm),
+          _Place(icon: Icons.inventory_2_rounded, color: RarColors.warning,
+              text: '${titleCase(trip.packageSize ?? 'package')} package${trip.packageNote == null ? '' : ' — ${trip.packageNote}'}'),
+          Row(children: [
+            Expanded(child: _Place(icon: Icons.person_pin_circle_rounded, color: RarColors.cyan,
+                text: 'Deliver to ${trip.recipientName ?? 'recipient'}${trip.recipientPhone == null ? '' : ' · ${trip.recipientPhone}'}')),
+            if (trip.recipientPhone != null)
+              IconButton(
+                key: const ValueKey('call-recipient'),
+                tooltip: 'Call ${trip.recipientName ?? 'the recipient'}',
+                onPressed: () => launchUrl(Uri(scheme: 'tel', path: trip.recipientPhone)),
+                icon: const Icon(Icons.call_rounded, color: RarColors.success),
+              ),
+          ]),
+        ],
         const SizedBox(height: RarSpacing.lg),
         RarButton.glass(label: trip.status == 'in_progress' ? 'Navigate to drop-off' : 'Navigate to pickup',
             leadingIcon: Icons.navigation_rounded, onPressed: _navigate),

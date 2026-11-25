@@ -26,13 +26,81 @@ enum RideOption {
   static RideOption fromDb(String v) => values.firstWhere((o) => o.db == v, orElse: () => economy);
 }
 
+/// Package sizes for dispatch and delivery orders.
+enum PackageSize {
+  small('small', 'Small', 'Documents, phone, food — fits in a bag', 1.0),
+  medium('medium', 'Medium', 'Shoebox to backpack size', 1.15),
+  large('large', 'Large', 'Boxes and heavy items — car or van only', 1.3);
+
+  const PackageSize(this.db, this.label, this.hint, this.multiplier);
+  final String db;
+  final String label;
+  final String hint;
+  final double multiplier;
+}
+
+/// Ways to send a package. Prices scale the Economy ride estimate.
+enum DeliveryOption {
+  dispatchBike('dispatch', 'motorcycle', 'Dispatch bike', 'Fastest for small and medium packages',
+      Icons.two_wheeler_rounded, 0.7),
+  deliveryCar('delivery', 'economy', 'Car delivery', 'Boot space for bags and boxes',
+      Icons.directions_car_filled_rounded, 1.2),
+  deliveryVan('delivery', 'suv', 'Van / SUV delivery', 'Large or heavy items',
+      Icons.local_shipping_rounded, 1.8);
+
+  const DeliveryOption(this.service, this.vehicleClass, this.label, this.blurb, this.icon, this.multiplier);
+  final String service;
+  final String vehicleClass;
+  final String label;
+  final String blurb;
+  final IconData icon;
+  final double multiplier;
+
+  /// Dispatch bikes can't carry large packages.
+  bool carries(PackageSize size) => !(this == dispatchBike && size == PackageSize.large);
+
+  /// Fixed fare in naira, rounded to ₦50.
+  int fareNaira(TripEstimate e, PackageSize size) =>
+      ((e.economyFareNaira * multiplier * size.multiplier) / 50).round() * 50;
+
+  static DeliveryOption? fromDb(String service, String vehicleClass) {
+    for (final o in values) {
+      if (o.service == service && o.vehicleClass == vehicleClass) return o;
+    }
+    return null;
+  }
+}
+
+/// Where the search for a driver has got to (from `ride_search_status`).
+class SearchStatus {
+  const SearchStatus({required this.radiusM, required this.driversInRange, required this.secondsWaiting,
+      required this.expiresInS});
+  final int radiusM;
+  final int driversInRange;
+  final int secondsWaiting;
+  final int expiresInS;
+
+  factory SearchStatus.fromJson(Map<String, dynamic> j) => SearchStatus(
+        radiusM: (j['radius_m'] as num).toInt(),
+        driversInRange: (j['drivers_in_range'] as num).toInt(),
+        secondsWaiting: (j['seconds_waiting'] as num).toInt(),
+        expiresInS: (j['expires_in_s'] as num).toInt(),
+      );
+}
+
 /// A ride as the passenger sees it.
 class PassengerRide {
   const PassengerRide({required this.id, required this.status, required this.option, required this.negotiable,
       required this.pickupAddress, required this.dropoffAddress, required this.estimatedKobo,
       required this.offeredKobo, required this.agreedKobo, required this.finalKobo, required this.driverId,
-      required this.requestedAt, required this.cancelReason, required this.pickup});
+      required this.requestedAt, required this.cancelReason, required this.pickup,
+      this.service = 'ride', this.vehicleClass = 'economy', this.recipientName, this.packageSize});
   final String id;
+  /// ride | dispatch | delivery
+  final String service;
+  final String vehicleClass;
+  final String? recipientName;
+  final PackageSize? packageSize;
   final String status;
   final RideOption option;
   final bool negotiable;
@@ -50,6 +118,14 @@ class PassengerRide {
   bool get isOpen => const {'requested', 'accepted', 'driver_arrived', 'in_progress'}.contains(status);
   bool get hasDriver => const {'accepted', 'driver_arrived', 'in_progress', 'completed'}.contains(status);
   int get fareKobo => finalKobo ?? agreedKobo ?? offeredKobo ?? estimatedKobo;
+  bool get isDelivery => service != 'ride';
+  DeliveryOption? get delivery => isDelivery ? DeliveryOption.fromDb(service, vehicleClass) : null;
+
+  /// "Economy", "Dispatch bike", "Car delivery"…
+  String get optionLabel => delivery?.label ?? option.label;
+
+  /// Who does the job: driver, or dispatch rider for bikes.
+  String get courier => service == 'dispatch' ? 'rider' : 'driver';
 
   factory PassengerRide.fromJson(Map<String, dynamic> j) => PassengerRide(
         id: j['id'] as String,
@@ -66,6 +142,10 @@ class PassengerRide {
         requestedAt: DateTime.parse(j['requested_at'] as String),
         cancelReason: j['cancel_reason'] as String?,
         pickup: parseEwkbPoint(j['pickup_location'] as String?),
+        service: (j['service_type'] as String?) ?? 'ride',
+        vehicleClass: j['vehicle_class'] as String,
+        recipientName: j['recipient_name'] as String?,
+        packageSize: PackageSize.values.where((s) => s.db == j['package_size']).firstOrNull,
       );
 }
 

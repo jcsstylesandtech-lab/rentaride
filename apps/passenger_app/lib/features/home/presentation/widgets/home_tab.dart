@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:rar_design_system/rar_design_system.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../rides/delivery_sheet.dart';
 import '../../../rides/ride_options_sheet.dart';
 
 import '../../../../app/router/app_routes.dart';
@@ -574,6 +575,15 @@ class _TripPanel extends ConsumerWidget {
               ? () => showRideOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate)
               : null,
           semanticLabel: AppConfig.hasBackend ? null : 'Choose a ride. Needs the live server.',
+        ),
+        const SizedBox(height: RarSpacing.sm),
+        RarButton.outline(
+          key: const ValueKey('send-package'),
+          label: 'Send a package',
+          leadingIcon: Icons.inventory_2_rounded,
+          onPressed: AppConfig.hasBackend && pickup != null && estimate != null
+              ? () => showDeliveryOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate)
+              : null,
         ),
         if (!AppConfig.hasBackend) ...[
           const SizedBox(height: 6),

@@ -124,8 +124,12 @@ class RideRequest {
   const RideRequest({required this.id, required this.vehicleClass, required this.negotiable,
       required this.pickupAddress, required this.pickupLat, required this.pickupLng, required this.dropoffAddress,
       required this.distanceM, required this.estimatedFare, required this.offeredFare,
-      required this.pickupDistanceM, required this.passengerName, required this.passengerRating, required this.requestedAt});
+      required this.pickupDistanceM, required this.passengerName, required this.passengerRating, required this.requestedAt,
+      this.service = ServiceType.ride, this.packageSize, this.packageNote});
   final String id;
+  final ServiceType service;
+  final String? packageSize;
+  final String? packageNote;
   final String vehicleClass;
   final bool negotiable;
   final String pickupAddress;
@@ -157,6 +161,9 @@ class RideRequest {
             : 'Passenger',
         passengerRating: (j['passenger_rating'] as num?)?.toDouble() ?? 5,
         requestedAt: DateTime.parse(j['requested_at'] as String),
+        service: ServiceType.values.asNameMap()[j['service_type']] ?? ServiceType.ride,
+        packageSize: j['package_size'] as String?,
+        packageNote: j['package_note'] as String?,
       );
 }
 
@@ -165,8 +172,14 @@ class Trip {
   const Trip({required this.id, required this.status, required this.pickupAddress, required this.dropoffAddress,
       this.pickup, this.dropoff,
       required this.fare, required this.negotiable, required this.paymentMethod, required this.distanceM,
-      required this.completedAt, required this.requestedAt});
+      required this.completedAt, required this.requestedAt,
+      this.service = ServiceType.ride, this.recipientName, this.recipientPhone, this.packageSize, this.packageNote});
   final String id;
+  final ServiceType service;
+  final String? recipientName;
+  final String? recipientPhone;
+  final String? packageSize;
+  final String? packageNote;
   final String status;
   final String pickupAddress;
   final String dropoffAddress;
@@ -180,6 +193,7 @@ class Trip {
   final DateTime requestedAt;
 
   bool get isActive => const {'accepted', 'driver_arrived', 'in_progress'}.contains(status);
+  bool get isDelivery => service != ServiceType.ride;
 
   factory Trip.fromJson(Map<String, dynamic> j) => Trip(
         id: j['id'] as String,
@@ -194,6 +208,11 @@ class Trip {
         distanceM: j['distance_m'] as int?,
         completedAt: j['completed_at'] == null ? null : DateTime.parse(j['completed_at'] as String),
         requestedAt: DateTime.parse(j['requested_at'] as String),
+        service: ServiceType.values.asNameMap()[j['service_type']] ?? ServiceType.ride,
+        recipientName: j['recipient_name'] as String?,
+        recipientPhone: j['recipient_phone'] as String?,
+        packageSize: j['package_size'] as String?,
+        packageNote: j['package_note'] as String?,
       );
 }
 

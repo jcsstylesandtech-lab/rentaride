@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException,
 
 import '../home/presentation/controllers/home_providers.dart';
 import 'ride_models.dart';
+import 'searching_card.dart';
 
 /// Follows one ride live: finding a driver / offers → driver on the way →
 /// on trip → rate. Updates come from Supabase Realtime (with a slow poll as
@@ -26,6 +27,9 @@ class _RideStatusScreenState extends ConsumerState<RideStatusScreen> {
   AssignedDriver? _driver;
   RealtimeChannel? _channel;
   Timer? _poll;
+  Timer? _searchPoll;
+  SearchStatus? _search;
+  DateTime _searchAt = DateTime.now();
   String? _error;
   String? _busy;
   bool _rated = false;
@@ -37,12 +41,14 @@ class _RideStatusScreenState extends ConsumerState<RideStatusScreen> {
     final repo = ref.read(ridesRepositoryProvider);
     _channel = repo.watch(widget.rideId, () { if (mounted) _load(); });
     _poll = Timer.periodic(const Duration(seconds: 10), (_) => _load());
+    _searchPoll = Timer.periodic(const Duration(seconds: 5), (_) => _loadSearch());
     _load();
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _searchPoll?.cancel();
     final c = _channel;
     if (c != null) ref.read(ridesRepositoryProvider).unwatch(c);
     super.dispose();
@@ -58,9 +64,24 @@ class _RideStatusScreenState extends ConsumerState<RideStatusScreen> {
       if (_ride != null && _ride!.status != ride.status) HapticFeedback.mediumImpact();
       setState(() { _ride = ride; _offers = offers; _driver = driver; _error = null; });
       if (!ride.isOpen) _poll?.cancel();
+      if (ride.status != 'requested') {
+        _searchPoll?.cancel();
+      } else if (_search == null) {
+        _loadSearch();
+      }
     } catch (_) {
       if (mounted) setState(() => _error = 'Reconnecting…');
     }
+  }
+
+  /// Search area and drivers in range, only while still waiting for one.
+  Future<void> _loadSearch() async {
+    final ride = _ride;
+    if (ride == null || ride.status != 'requested') return;
+    try {
+      final s = await ref.read(ridesRepositoryProvider).searchStatus(ride.id);
+      if (mounted) setState(() { _search = s; _searchAt = DateTime.now(); });
+    } catch (_) {/* the card keeps counting; next poll retries */}
   }
 
   Future<void> _act(String key, Future<void> Function() action) async {
@@ -127,7 +148,7 @@ class _RideStatusScreenState extends ConsumerState<RideStatusScreen> {
         child: Scaffold(
           backgroundColor: RarColors.background,
           appBar: AppBar(
-            title: const Text('Your ride'),
+            title: Text(ride?.isDelivery == true ? 'Your delivery' : 'Your ride'),
             actions: [
               if (ride != null && const {'accepted', 'driver_arrived', 'in_progress'}.contains(ride.status))
                 Padding(
@@ -162,18 +183,20 @@ class _RideStatusScreenState extends ConsumerState<RideStatusScreen> {
       case 'requested':
         return [
           if (ride.negotiable) ...[
-            Text(_offers.isEmpty ? 'Waiting for driver offers…' : 'Pick an offer',
-                style: RarTypography.titleSmall.copyWith(color: RarColors.navy)),
+            if (_offers.isEmpty)
+              SearchingCard(ride: ride, status: _search, fetchedAt: _searchAt)
+            else
+              Text('Pick an offer', style: RarTypography.titleSmall.copyWith(color: RarColors.navy)),
             const SizedBox(height: RarSpacing.sm),
-            if (_offers.isEmpty) const LinearProgressIndicator(),
             for (final o in _offers)
               _OfferTile(offer: o, yourOffer: ride.offeredKobo, busy: _busy == o.id,
                   onAccept: () => _act(o.id, () => ref.read(ridesRepositoryProvider).acceptOffer(o.id))),
           ] else ...[
-            const LinearProgressIndicator(),
-            const SizedBox(height: RarSpacing.sm),
-            Text('Nearby drivers are seeing your request.', textAlign: TextAlign.center,
-                style: RarTypography.bodySmall.copyWith(color: RarColors.textSecondary)),
+            SearchingCard(ride: ride, status: _search, fetchedAt: _searchAt),
+            if (ride.isDelivery) ...[
+              const SizedBox(height: RarSpacing.md),
+              _PackageCard(ride: ride),
+            ],
           ],
           const SizedBox(height: RarSpacing.xl),
           RarButton.outline(label: 'Cancel request', isLoading: _busy == 'cancel', onPressed: _busy != null ? null : _cancel),
@@ -182,8 +205,15 @@ class _RideStatusScreenState extends ConsumerState<RideStatusScreen> {
         return [
           _DriverCard(driver: _driver),
           const SizedBox(height: RarSpacing.md),
-          _InfoRow(icon: Icons.payments_rounded, text: 'Pay ${nairaKobo(ride.fareKobo)} in cash at the end of the trip.'),
-          _InfoRow(icon: Icons.shield_rounded, text: 'Check the plate number before you get in. Tap SOS at any time if you feel unsafe.'),
+          if (ride.isDelivery) ...[
+            _PackageCard(ride: ride),
+            const SizedBox(height: RarSpacing.sm),
+            _InfoRow(icon: Icons.payments_rounded, text: 'Pay ${nairaKobo(ride.fareKobo)} in cash when the ${ride.courier} collects the package.'),
+            _InfoRow(icon: Icons.shield_rounded, text: 'Check the plate number before you hand it over. Tap SOS if anything feels wrong.'),
+          ] else ...[
+            _InfoRow(icon: Icons.payments_rounded, text: 'Pay ${nairaKobo(ride.fareKobo)} in cash at the end of the trip.'),
+            _InfoRow(icon: Icons.shield_rounded, text: 'Check the plate number before you get in. Tap SOS at any time if you feel unsafe.'),
+          ],
           if (ride.status != 'in_progress') ...[
             const SizedBox(height: RarSpacing.xl),
             RarButton.outline(label: 'Cancel ride', isLoading: _busy == 'cancel', onPressed: _busy != null ? null : _cancel),
@@ -221,6 +251,17 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (ride.isDelivery) {
+      final (IconData icon, String title, String sub) = switch (ride.status) {
+        'requested' => (Icons.search_rounded, 'Finding a ${ride.courier}', '${ride.optionLabel} · ${nairaKobo(ride.estimatedKobo)}'),
+        'accepted' => (ride.delivery?.icon ?? Icons.local_shipping_rounded, 'Coming to collect', 'Have the package ready at the pickup point.'),
+        'driver_arrived' => (Icons.place_rounded, 'Your ${ride.courier} is here', 'Hand over the package.'),
+        'in_progress' => (Icons.route_rounded, 'On the way to ${ride.recipientName ?? 'the recipient'}', 'We will show here when it is delivered.'),
+        'completed' => (Icons.check_circle_rounded, 'Delivered', 'Fare ${nairaKobo(ride.fareKobo)}'),
+        _ => (Icons.cancel_rounded, 'Delivery cancelled', 'No charge.'),
+      };
+      return _banner(icon, title, sub);
+    }
     final (IconData icon, String title, String sub) = switch (ride.status) {
       'requested' when ride.negotiable => (Icons.handshake_rounded, 'Offer sent: ${nairaKobo(ride.offeredKobo ?? ride.estimatedKobo)}',
           offers == 0 ? 'Drivers nearby can accept or counter your price.' : '$offers driver${offers == 1 ? '' : 's'} responded.'),
@@ -231,6 +272,10 @@ class _Header extends StatelessWidget {
       'completed' => (Icons.check_circle_rounded, 'You have arrived', 'Trip fare ${nairaKobo(ride.fareKobo)}'),
       _ => (Icons.cancel_rounded, 'Ride cancelled', 'No charge.'),
     };
+    return _banner(icon, title, sub);
+  }
+
+  Widget _banner(IconData icon, String title, String sub) {
     return Container(
       padding: const EdgeInsets.all(RarSpacing.lg),
       decoration: BoxDecoration(gradient: RarGradients.primaryButton, borderRadius: RarRadius.card),
@@ -372,4 +417,17 @@ class _InfoRow extends StatelessWidget {
           Expanded(child: Text(text, style: RarTypography.bodySmall.copyWith(color: RarColors.navy))),
         ]),
       );
+}
+
+/// Who gets the package, and what it is.
+class _PackageCard extends StatelessWidget {
+  const _PackageCard({required this.ride});
+  final PassengerRide ride;
+  @override
+  Widget build(BuildContext context) => _Card(child: Column(children: [
+        _InfoRow(icon: Icons.person_pin_circle_rounded, color: RarColors.royal,
+            text: 'For ${ride.recipientName ?? 'the recipient'}'),
+        _InfoRow(icon: Icons.inventory_2_rounded, color: RarColors.royal,
+            text: '${ride.packageSize?.label ?? 'Package'} package · ${ride.optionLabel}'),
+      ]));
 }

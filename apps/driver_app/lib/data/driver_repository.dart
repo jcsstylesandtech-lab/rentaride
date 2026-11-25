@@ -109,7 +109,8 @@ class DriverRepository {
       });
 
   Future<List<RideRequest>> openRequests() async {
-    final rows = await _db.rpc('open_ride_requests', params: {'p_radius_m': 8000}) as List;
+    // Only jobs for this driver's service, inside each request's growing search area.
+    final rows = await _db.rpc('open_jobs', params: {'p_radius_m': 10000}) as List;
     return rows.cast<Map<String, dynamic>>().map(RideRequest.fromJson).toList();
   }
 
