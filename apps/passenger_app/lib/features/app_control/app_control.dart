@@ -151,10 +151,20 @@ class _AppControlShellState extends ConsumerState<AppControlShell> {
               const Icon(Icons.campaign_rounded, color: RarColors.cyan, size: 20),
               const SizedBox(width: RarSpacing.sm),
               Expanded(child: Text(banner, style: RarTypography.bodySmall.copyWith(color: RarColors.white))),
-              IconButton(
-                tooltip: 'Hide announcement',
-                onPressed: () => setState(() => _dismissedBanner = banner),
-                icon: const Icon(Icons.close_rounded, color: RarColors.white, size: 18),
+              // Sits above the Navigator, where there is no Overlay for a
+              // tooltip, so a plain labelled button instead of IconButton.
+              Semantics(
+                button: true,
+                label: 'Hide announcement',
+                child: InkResponse(
+                  key: const ValueKey('hide-announcement'),
+                  onTap: () => setState(() => _dismissedBanner = banner),
+                  radius: 22,
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Icon(Icons.close_rounded, color: RarColors.white, size: 18),
+                  ),
+                ),
               ),
             ]),
           ),

@@ -48,7 +48,7 @@ void main() {
     await pump(tester, const AppSettings(announcement: '10% off this weekend'));
     expect(find.text('10% off this weekend'), findsOneWidget);
     expect(find.text('Home screen'), findsOneWidget);
-    await tester.tap(find.byTooltip('Hide announcement'));
+    await tester.tap(find.byKey(const ValueKey('hide-announcement')));
     await tester.pump();
     expect(find.text('10% off this weekend'), findsNothing);
   });
