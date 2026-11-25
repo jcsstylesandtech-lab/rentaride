@@ -94,17 +94,24 @@ void main() {
     }
 
     Future<void> tap(WidgetTester tester, String key) async {
-      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      // The sheet is a lazy list: scroll until the target has been built.
+      await tester.scrollUntilVisible(find.byKey(ValueKey(key)), 150,
+          scrollable: find.byType(Scrollable).first);
       await tester.tap(find.byKey(ValueKey(key)));
       await tester.pumpAndSettle();
     }
 
-    Future<void> type(WidgetTester tester, String key, String text) => tester.enterText(
-        find.descendant(of: find.byKey(ValueKey(key)), matching: find.byType(EditableText)), text);
+    Future<void> type(WidgetTester tester, String key, String text) async {
+      await tester.scrollUntilVisible(find.byKey(ValueKey(key)), 150, scrollable: find.byType(Scrollable).first);
+      await tester.enterText(
+          find.descendant(of: find.byKey(ValueKey(key)), matching: find.byType(EditableText)), text);
+    }
 
     testWidgets('needs a recipient before sending', (tester) async {
       await open(tester);
       await tap(tester, 'request-delivery');
+      await tester.scrollUntilVisible(find.text("Enter the recipient's name"), -150,
+          scrollable: find.byType(Scrollable).first);
       expect(find.text("Enter the recipient's name"), findsOneWidget);
       expect(find.text('Enter a Nigerian mobile number, e.g. 0803 123 4567.'), findsOneWidget);
       expect(repo.requests, isEmpty);

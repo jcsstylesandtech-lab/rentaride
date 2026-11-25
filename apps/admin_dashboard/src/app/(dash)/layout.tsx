@@ -4,12 +4,15 @@ import { StaffProvider, type Staff } from "@/components/staff-context";
 import { Sidebar, MobileNav } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 import { NoAccess } from "@/components/no-access";
+import { MustChangePassword } from "@/components/must-change-password";
 import type { StaffRole } from "@/lib/roles";
 
 export default async function DashLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // A super admin set a temporary password: they pick their own before anything else.
+  if (user.user_metadata?.must_change_password) return <MustChangePassword email={user.email ?? ""} />;
 
   // Only active staff members get in; the database enforces the same rule.
   const { data: role } = await supabase.rpc("my_staff_role");
