@@ -13,10 +13,11 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture.
 | Path | What | Status |
 |------|------|--------|
 | `packages/rar_design_system` | Shared Flutter design system (tokens, theme, glass components, Poppins) | ✅ |
-| `apps/passenger_app` | Passenger Flutter app on Supabase (demo data without env) | 🚧 Email accounts, live cars on the map, booking (fixed fare or offer your price), driver offers, trip tracking, SOS, ratings, support chat, saved places |
-| `apps/admin_dashboard` | Next.js + Tailwind admin console on Supabase | 🚧 Overview, driver verification, passengers, rides, payments, SOS, support chats, staff access, audit log |
+| `apps/passenger_app` | Passenger Flutter app on Supabase (demo data without env) | 🚧 Email accounts, live cars on the map, booking (fixed fare or offer your price), wallet top-ups with Paystack and paying by wallet or cash, driver offers, trip tracking, SOS, ratings, support chat, saved places |
+| `apps/admin_dashboard` | Next.js + Tailwind admin console on Supabase | 🚧 Overview, driver verification, passengers, rides, payments and driver withdrawals, SOS, support chats, staff access, audit log |
 | `supabase/migrations` | Database schema (PostgreSQL + PostGIS, row-level security) | ✅ Applied to the Supabase project |
-| `apps/driver_app` | Driver Flutter app on Supabase | 🚧 Sign-up, verification (licence, vehicle, documents), go online with live location, ride requests, fixed-fare accept / fare offers, trip flow, earnings |
+| `supabase/functions` | Edge Functions: `payments`, `paystack-webhook`, `staff-password-reset` | ✅ Deployed. Payments need a Paystack key: [docs/PAYMENTS_SETUP.md](docs/PAYMENTS_SETUP.md) |
+| `apps/driver_app` | Driver Flutter app on Supabase | 🚧 Sign-up, verification (licence, vehicle, documents), go online with live location, ride requests, fixed-fare accept / fare offers, trip flow, earnings, bank account and withdrawals |
 
 ## Run
 
