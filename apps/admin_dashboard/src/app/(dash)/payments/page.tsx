@@ -6,6 +6,7 @@ import { can } from "@/lib/roles";
 import { dateTime, naira, titleCase } from "@/lib/format";
 import { useStaff } from "@/components/staff-context";
 import { Empty, ErrorNote, PageHeader, StatusBadge, TableSkeleton, Tabs, td, th } from "@/components/ui";
+import { Withdrawals } from "./withdrawals";
 
 type Payment = {
   id: string; provider: string; reference: string; amount_kobo: number; status: string; created_at: string;
@@ -15,6 +16,7 @@ type Filter = "all" | "succeeded" | "pending" | "failed" | "refunded";
 
 export default function PaymentsPage() {
   const staff = useStaff();
+  const [view, setView] = useState<"payments" | "withdrawals">("payments");
   const [filter, setFilter] = useState<Filter>("all");
   const [rows, setRows] = useState<Payment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,10 @@ export default function PaymentsPage() {
 
   return (
     <>
-      <PageHeader title="Payments" subtitle="Card, transfer and cash payments recorded by the backend after verification." />
+      <PageHeader title="Payments" subtitle="Wallet top-ups and trip payments verified with Paystack, and driver withdrawals." />
+      <div className="mb-5"><Tabs value={view} onChange={setView}
+        options={[{ value: "payments", label: "Payments" }, { value: "withdrawals", label: "Withdrawals" }]} /></div>
+      {view === "withdrawals" ? <Withdrawals /> : <>
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <Total label="Succeeded" value={naira(sum("succeeded"), 2)} tone="text-success" />
         <Total label="Pending" value={naira(sum("pending"), 2)} tone="text-warning" />
@@ -48,7 +53,7 @@ export default function PaymentsPage() {
       {error && <ErrorNote message={error} />}
       <div className="card overflow-x-auto">
         {!rows ? <TableSkeleton /> : rows.length === 0 ? (
-          <Empty title="No payments yet" hint="Payments appear once Paystack / Flutterwave are connected on the backend." />
+          <Empty title="No payments yet" hint="Wallet top-ups and wallet-paid trips appear here." />
         ) : (
           <table className="w-full min-w-[760px]">
             <thead className="border-b border-white/5"><tr>
@@ -70,6 +75,7 @@ export default function PaymentsPage() {
           </table>
         )}
       </div>
+      </>}
     </>
   );
 }

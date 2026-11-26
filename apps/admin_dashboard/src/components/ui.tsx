@@ -16,7 +16,7 @@ const STATUS_TONE: Record<string, keyof typeof TONES> = {
   pending: "warn", requested: "warn", acknowledged: "warn", driver_arrived: "info",
   accepted: "info", in_progress: "info", open: "bad",
   rejected: "bad", suspended: "bad", cancelled: "bad", failed: "bad", deleted: "bad",
-  expired: "plain", refunded: "plain",
+  expired: "plain", refunded: "plain", paid: "good", processing: "info",
 };
 
 export function StatusBadge({ status }: { status: string }) {
