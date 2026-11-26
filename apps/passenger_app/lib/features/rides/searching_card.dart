@@ -83,7 +83,7 @@ class _SearchingCardState extends State<SearchingCard> with SingleTickerProvider
       headline = 'Still searching';
       detail = 'No ${who}s free within ${_km(radiusKm)} yet. The search area grows every 30 seconds.';
     } else {
-      headline = '$count ${who}${count == 1 ? '' : 's'} can see your request';
+      headline = '$count $who${count == 1 ? '' : 's'} can see your request';
       detail = 'Searching within ${_km(radiusKm)} of your pickup. The first to accept gets the job.';
     }
 

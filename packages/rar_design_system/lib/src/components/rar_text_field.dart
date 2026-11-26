@@ -300,7 +300,7 @@ class RarInlineMessage extends StatelessWidget {
                       color: dark ? RarColors.white : RarColors.navy,
                     ),
                   ),
-                  if (action != null) action!,
+                  ?action,
                 ],
               ),
             ),

@@ -591,10 +591,10 @@ class _TripPanel extends ConsumerWidget {
         if (!control.ridesEnabled || !control.anyDeliveryEnabled) ...[
           const SizedBox(height: 6),
           Text(
-            [
+            '${[
               if (!control.ridesEnabled) 'Ride booking',
               if (!control.anyDeliveryEnabled) 'Package delivery',
-            ].join(' and ') + ' is paused right now. Please try again later.',
+            ].join(' and ')} is paused right now. Please try again later.',
             textAlign: TextAlign.center,
             style: RarTypography.caption.copyWith(color: RarColors.textMuted),
           ),
