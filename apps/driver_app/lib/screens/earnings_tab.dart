@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../data/models.dart';
 import '../state/providers.dart';
 import '../widgets/common.dart';
+import 'payouts_section.dart';
 
 final _tripsProvider = FutureProvider.autoDispose<List<Trip>>((ref) => ref.watch(repoProvider).completedTrips(days: 30));
 
@@ -25,6 +26,8 @@ class EarningsTab extends ConsumerWidget {
       child: ListView(children: [
         const SizedBox(height: RarSpacing.md),
         Text('Earnings', style: RarTypography.headlineLarge.copyWith(color: RarColors.white)),
+        const SizedBox(height: RarSpacing.lg),
+        const PayoutsSection(),
         const SizedBox(height: RarSpacing.lg),
         trips.when(
           loading: () => const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator(color: RarColors.cyan))),
@@ -50,7 +53,7 @@ class EarningsTab extends ConsumerWidget {
                 Expanded(child: _Stat(label: 'Last 30 days', value: naira(sum(list)), sub: '${list.length} trips')),
               ]),
               const SizedBox(height: RarSpacing.sm),
-              Text('Fares shown are what riders paid. Cash trips: you collect the fare directly.',
+              Text('Fares shown are what riders paid. Cash trips: you collect the fare; the 15% commission is taken from your wallet.',
                   style: RarTypography.caption.copyWith(color: RarColors.textOnDarkMuted)),
               const SizedBox(height: RarSpacing.lg),
               Text('Recent trips', style: RarTypography.titleSmall.copyWith(color: RarColors.white)),
