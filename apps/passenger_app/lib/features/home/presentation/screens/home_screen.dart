@@ -9,6 +9,7 @@ import '../../../messages/messages.dart';
 import '../../../messages/messages_tab.dart';
 import '../../../profile/profile_tab.dart';
 import '../widgets/account_tabs.dart';
+import '../../../wallet/wallet_tab.dart';
 import '../widgets/home_tab.dart';
 
 /// Signed-in shell: Home (map), Rides, Messages, Wallet and Profile.

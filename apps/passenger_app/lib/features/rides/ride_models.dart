@@ -198,3 +198,15 @@ GeoPoint? parseEwkbPoint(String? hex) {
     return null;
   }
 }
+
+
+/// How the passenger pays for a trip. Cards are used to add money to the
+/// wallet; paying a card at the end of a trip isn't offered yet.
+enum PaymentChoice {
+  cash('cash', 'Cash'),
+  wallet('wallet', 'Wallet');
+
+  const PaymentChoice(this.db, this.label);
+  final String db;
+  final String label;
+}

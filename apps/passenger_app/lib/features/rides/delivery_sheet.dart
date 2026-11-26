@@ -10,6 +10,7 @@ import '../home/presentation/controllers/home_providers.dart';
 import '../map/map_data.dart';
 import 'ride_models.dart';
 import 'ride_status_screen.dart';
+import '../wallet/payment_picker.dart';
 
 /// Send a package: choose bike / car / van and the size, say who receives
 /// it, then request. Fixed fare, paid in cash.
@@ -41,6 +42,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   final _note = TextEditingController();
   DeliveryOption _option = DeliveryOption.dispatchBike;
   PackageSize _size = PackageSize.small;
+  PaymentChoice _payment = PaymentChoice.cash;
   bool _busy = false;
   String? _error;
 
@@ -74,6 +76,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
             recipientName: _name.text.trim(),
             recipientPhone: Validators.normaliseNigerianPhone(_phone.text)!,
             note: _note.text,
+            payment: effectivePayment(ref, _payment, _fare),
           );
       if (!mounted) return;
       final nav = Navigator.of(context);
@@ -175,12 +178,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
                   Text("Only the ${_option.service == 'dispatch' ? 'rider' : 'driver'} who takes the job sees the recipient's phone.",
                       style: RarTypography.caption.copyWith(color: RarColors.textMuted)),
                   const SizedBox(height: RarSpacing.sm),
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.payments_rounded, size: 16, color: RarColors.success),
-                    const SizedBox(width: 6),
-                    Text('Cash at pickup', style: RarTypography.bodySmall.copyWith(color: RarColors.navy, fontWeight: FontWeight.w600)),
-                    Text(' · fixed price', style: RarTypography.caption.copyWith(color: RarColors.textMuted)),
-                  ]),
+                  PaymentPicker(value: _payment, fareNaira: _fare, onChanged: (p) => setState(() => _payment = p)),
                   if (_error != null) ...[
                     const SizedBox(height: RarSpacing.sm),
                     RarInlineMessage.error(_error!),

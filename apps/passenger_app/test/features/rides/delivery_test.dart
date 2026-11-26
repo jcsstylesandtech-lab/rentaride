@@ -21,7 +21,7 @@ class _FakeRides implements RidesRepository {
   Future<String> requestDelivery({
     required Place pickup, required Place dropoff, required DeliveryOption option, required PackageSize size,
     required TripEstimate estimate, required int fareKobo, required String recipientName,
-    required String recipientPhone, String? note,
+    required String recipientPhone, String? note, PaymentChoice payment = PaymentChoice.cash,
   }) async {
     requests.add({'option': option, 'size': size, 'fare': fareKobo, 'name': recipientName,
         'phone': recipientPhone, 'note': note});

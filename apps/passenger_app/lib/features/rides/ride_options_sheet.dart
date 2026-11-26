@@ -7,6 +7,7 @@ import '../home/presentation/controllers/home_providers.dart';
 import '../map/map_data.dart';
 import 'ride_models.dart';
 import 'ride_status_screen.dart';
+import '../wallet/payment_picker.dart';
 
 /// Choose a ride type and how to pay the fare, then request the ride.
 Future<void> showRideOptions(BuildContext context, {required Place pickup, required Place dropoff, required TripEstimate estimate}) {
@@ -33,8 +34,11 @@ class _RideOptionsSheetState extends ConsumerState<RideOptionsSheet> {
   RideOption _option = RideOption.economy;
   bool _negotiate = false;
   int? _offerNaira;
+  PaymentChoice _payment = PaymentChoice.cash;
   bool _busy = false;
   String? _error;
+
+  int get _fare => _negotiate ? _offer : _fixed;
 
   int get _fixed => _option.fareNaira(widget.estimate);
   int get _minOffer => ((_fixed * 0.6) / 50).round() * 50;
@@ -50,6 +54,7 @@ class _RideOptionsSheetState extends ConsumerState<RideOptionsSheet> {
             estimate: widget.estimate,
             estimatedKobo: _fixed * 100,
             offeredKobo: _negotiate ? _offer * 100 : null,
+            payment: effectivePayment(ref, _payment, _fare),
           );
       if (!mounted) return;
       final nav = Navigator.of(context);
@@ -116,12 +121,7 @@ class _RideOptionsSheetState extends ConsumerState<RideOptionsSheet> {
               Text('You pay ${formatNaira(_fixed)} — the price is locked before you ride.',
                   textAlign: TextAlign.center, style: RarTypography.bodySmall.copyWith(color: RarColors.textSecondary)),
             const SizedBox(height: RarSpacing.sm),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.payments_rounded, size: 16, color: RarColors.success),
-              const SizedBox(width: 6),
-              Text('Cash', style: RarTypography.bodySmall.copyWith(color: RarColors.navy, fontWeight: FontWeight.w600)),
-              Text(' · cards and wallet coming soon', style: RarTypography.caption.copyWith(color: RarColors.textMuted)),
-            ]),
+            PaymentPicker(value: _payment, fareNaira: _fare, onChanged: (p) => setState(() => _payment = p)),
             if (_error != null) ...[
               const SizedBox(height: RarSpacing.sm),
               RarInlineMessage.error(_error!),

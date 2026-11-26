@@ -22,6 +22,7 @@ class RidesRepository {
     required TripEstimate estimate,
     required int estimatedKobo,
     int? offeredKobo,
+    PaymentChoice payment = PaymentChoice.cash,
   }) async {
     final row = await _db.from('rides').insert({
       'passenger_id': _uid,
@@ -35,7 +36,7 @@ class RidesRepository {
       'duration_s': estimate.durationMin * 60,
       'estimated_fare_kobo': estimatedKobo,
       'offered_fare_kobo': offeredKobo,
-      'payment_method': 'cash',
+      'payment_method': payment.db,
     }).select('id').single();
     return row['id'] as String;
   }
@@ -51,6 +52,7 @@ class RidesRepository {
     required String recipientName,
     required String recipientPhone,
     String? note,
+    PaymentChoice payment = PaymentChoice.cash,
   }) async {
     final row = await _db.from('rides').insert({
       'passenger_id': _uid,
@@ -64,7 +66,7 @@ class RidesRepository {
       'distance_m': (estimate.distanceKm * 1000).round(),
       'duration_s': estimate.durationMin * 60,
       'estimated_fare_kobo': fareKobo,
-      'payment_method': 'cash',
+      'payment_method': payment.db,
       'recipient_name': recipientName,
       'recipient_phone': recipientPhone,
       'package_size': size.db,
