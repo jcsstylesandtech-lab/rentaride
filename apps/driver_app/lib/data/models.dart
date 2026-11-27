@@ -22,12 +22,18 @@ enum DocumentType {
   insurance('insurance', 'Insurance certificate', true),
   roadworthiness('roadworthiness', 'Roadworthiness certificate', false),
   vehiclePhoto('vehicle_photo', 'Photo of your vehicle', true),
-  profilePhoto('profile_photo', 'Clear photo of your face', true);
+  proofOfAddress('proof_of_address', 'Proof of address', true,
+      hint: 'Utility bill, bank statement or tenancy agreement from the last 3 months, showing your name and address.'),
+  profilePhoto('profile_photo', 'Clear photo of your face', true,
+      hint: 'This photo will also be your profile picture. Riders see it when you pick them up.');
 
-  const DocumentType(this.db, this.label, this.required);
+  const DocumentType(this.db, this.label, this.required, {this.hint});
   final String db;
   final String label;
   final bool required;
+
+  /// Shown under the label and in the upload sheet.
+  final String? hint;
 
   static DocumentType fromDb(String v) => values.firstWhere((t) => t.db == v);
 }
@@ -58,11 +64,12 @@ class Profile {
 
 class Driver {
   const Driver({required this.id, required this.status, required this.licenceNumber,
-      required this.isOnline, required this.rejectionReason, this.serviceType = ServiceType.ride});
+      required this.isOnline, required this.rejectionReason, this.serviceType = ServiceType.ride, this.homeAddress});
   final String id;
   final DriverStatus status;
   final ServiceType serviceType;
   final String? licenceNumber;
+  final String? homeAddress;
   final bool isOnline;
   final String? rejectionReason;
 
@@ -71,6 +78,7 @@ class Driver {
         status: DriverStatus.values.byName(j['status'] as String),
         serviceType: ServiceType.values.asNameMap()[j['service_type']] ?? ServiceType.ride,
         licenceNumber: j['licence_number'] as String?,
+        homeAddress: j['home_address'] as String?,
         isOnline: j['is_online'] as bool? ?? false,
         rejectionReason: j['rejection_reason'] as String?,
       );

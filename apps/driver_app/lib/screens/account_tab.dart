@@ -77,6 +77,7 @@ class AccountTab extends ConsumerWidget {
       const SizedBox(height: RarSpacing.lg),
       Panel(child: Column(children: [
         row(Icons.badge_rounded, "Driver's licence", s.driver?.licenceNumber ?? '—'),
+        if (s.driver?.homeAddress?.isNotEmpty == true) row(Icons.home_rounded, 'Home address', s.driver!.homeAddress!),
         if (v != null) row(Icons.directions_car_rounded, 'Vehicle', '${v.title} · ${v.plateNumber}', trailing: StatusChip(v.review)),
         if (v != null) row(Icons.category_rounded, 'Ride type', titleCase(v.vehicleClass.name == 'suv' ? 'SUV' : v.vehicleClass.name)),
       ])),

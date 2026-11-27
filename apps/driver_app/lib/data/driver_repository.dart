@@ -65,6 +65,9 @@ class DriverRepository {
   Future<void> updateLicence(String licenceNumber) =>
       _db.from('drivers').update({'licence_number': licenceNumber}).eq('id', _uid);
 
+  Future<void> updateAddress(String address) =>
+      _db.from('drivers').update({'home_address': address}).eq('id', _uid);
+
   Future<List<Vehicle>> myVehicles() async {
     final rows = await _db.from('vehicles').select().eq('driver_id', _uid).order('created_at');
     return rows.map(Vehicle.fromJson).toList();

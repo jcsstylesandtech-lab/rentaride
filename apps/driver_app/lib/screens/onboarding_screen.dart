@@ -68,6 +68,38 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  Future<void> _editAddress(DriverState s) async {
+    final ctrl = TextEditingController(text: s.driver?.homeAddress ?? '');
+    final value = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: RarColors.navy900,
+      builder: (ctx) => _Sheet(
+        title: 'Home address',
+        children: [
+          RarTextField(label: 'Address', hint: '12 Adeola Odeku St, Victoria Island, Lagos',
+              controller: ctrl, prefixIcon: Icons.home_rounded, autofocus: true,
+              keyboardType: TextInputType.streetAddress, textCapitalization: TextCapitalization.words,
+              helper: 'Use the address on your proof of address document.',
+              inputFormatters: [LengthLimitingTextInputFormatter(250)]),
+          const SizedBox(height: RarSpacing.lg),
+          RarButton.primary(label: 'Save', onPressed: () => Navigator.pop(ctx, ctrl.text.trim())),
+        ],
+      ),
+    );
+    if (value == null) return;
+    if (value.length < 10) {
+      if (mounted) showSnack(context, 'Enter your full address: street, area and city', error: true);
+      return;
+    }
+    try {
+      await ref.read(repoProvider).updateAddress(value);
+      _refresh();
+    } catch (e) {
+      if (mounted) showSnack(context, friendlyError(e), error: true);
+    }
+  }
+
   Future<void> _chooseService(DriverState s) async {
     final current = s.driver?.serviceType;
     final picked = await showModalBottomSheet<ServiceType>(
@@ -125,6 +157,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       context: context,
       backgroundColor: RarColors.navy900,
       builder: (ctx) => _Sheet(title: type.label, children: [
+        if (type.hint != null) ...[
+          _Notice(type.hint!, icon: type == DocumentType.profilePhoto ? Icons.account_circle_rounded : Icons.info_outline_rounded),
+          const SizedBox(height: RarSpacing.sm),
+        ],
         ListTile(leading: const Icon(Icons.photo_camera_rounded, color: RarColors.cyan), title: const Text('Take a photo'),
             onTap: () => Navigator.pop(ctx, ImageSource.camera)),
         ListTile(leading: const Icon(Icons.photo_library_rounded, color: RarColors.cyan), title: const Text('Choose from photos'),
@@ -138,9 +174,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       setState(() => _uploading = type);
       final bytes = await file.readAsBytes();
       final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
-      await ref.read(repoProvider).uploadDocument(type, bytes, ext);
+      final repo = ref.read(repoProvider);
+      await repo.uploadDocument(type, bytes, ext);
+      var message = '${type.label} uploaded';
+      if (type == DocumentType.profilePhoto) {
+        // The verification selfie doubles as the profile picture riders see.
+        try {
+          if (bytes.lengthInBytes > 5 * 1024 * 1024) throw StateError('too large');
+          await repo.uploadAvatar(bytes, ext);
+          message = 'Photo uploaded. It is now your profile picture.';
+        } catch (_) {
+          message = 'Photo uploaded. Set your profile picture from the Account tab once approved.';
+        }
+      }
       _refresh();
-      if (mounted) showSnack(context, '${type.label} uploaded');
+      if (mounted) showSnack(context, message);
     } on PlatformException catch (e) {
       if (mounted) {
         showSnack(context, e.code.contains('camera') ? 'Camera not available here — choose from photos.' : friendlyError(e), error: true);
@@ -159,9 +207,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final docs = s.latestDocs;
     final serviceDone = s.driver != null;
     final licenceDone = s.driver?.licenceNumber?.isNotEmpty == true;
+    final addressDone = s.driver?.homeAddress?.trim().isNotEmpty == true;
     final vehicleDone = s.vehicles.isNotEmpty;
     final docsDone = s.docsComplete;
-    final allDone = licenceDone && vehicleDone && docsDone;
+    final allDone = licenceDone && addressDone && vehicleDone && docsDone;
 
     return DriverScaffold(
       child: RefreshIndicator(
@@ -197,7 +246,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               locked: !serviceDone,
             ),
             _Step(
-              number: 3, done: vehicleDone, title: 'Your vehicle',
+              number: 3, done: addressDone, title: 'Home address',
+              subtitle: addressDone ? s.driver!.homeAddress! : 'Where you live. Matches your proof of address.',
+              action: s.approved || !licenceDone ? null : (addressDone ? 'Edit' : 'Add'),
+              onAction: () => _editAddress(s),
+              locked: !licenceDone,
+            ),
+            _Step(
+              number: 4, done: vehicleDone, title: 'Your vehicle',
               subtitle: vehicleDone ? s.vehicles.first.title : 'Make, model, colour and plate number',
               trailing: vehicleDone ? StatusChip(s.vehicles.first.review) : null,
               action: !licenceDone ? null : (vehicleDone ? 'Edit' : 'Add'),
@@ -205,7 +261,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               locked: !licenceDone,
             ),
             _Step(
-              number: 4, done: docsDone, title: 'Documents',
+              number: 5, done: docsDone, title: 'Documents',
               subtitle: 'Clear photos. Our team reviews each one.',
               locked: !licenceDone,
             ),
@@ -221,6 +277,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(t.label + (t.required ? '' : ' (optional)'),
                               style: RarTypography.bodySmall.copyWith(color: RarColors.white, fontWeight: FontWeight.w600)),
+                          if (t.hint != null && (d == null || d.review == 'rejected'))
+                            Text(t.hint!, style: RarTypography.caption.copyWith(color: RarColors.textOnDarkMuted)),
                           if (d?.note != null) Text(d!.note!, style: RarTypography.caption.copyWith(color: RarColors.danger)),
                         ]),
                       ),
@@ -317,6 +375,27 @@ class _Step extends StatelessWidget {
       ),
     );
   }
+}
+
+class _Notice extends StatelessWidget {
+  const _Notice(this.text, {required this.icon});
+  final String text;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(RarSpacing.md),
+        decoration: BoxDecoration(
+          color: RarColors.cyan.withValues(alpha: 0.12),
+          borderRadius: RarRadius.card,
+          border: Border.all(color: RarColors.cyan.withValues(alpha: 0.4)),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon, color: RarColors.cyan, size: 20),
+          const SizedBox(width: RarSpacing.sm),
+          Expanded(child: Text(text, style: RarTypography.bodySmall.copyWith(color: RarColors.white))),
+        ]),
+      );
 }
 
 class _Sheet extends StatelessWidget {
