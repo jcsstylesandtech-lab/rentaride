@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Bell, Settings } from "lucide-react";
 import { useStaff } from "./staff-context";
 import { ROLE_LABEL } from "@/lib/roles";
-import { initials } from "@/lib/format";
+import { Avatar } from "./avatar";
 import { createClient } from "@/lib/supabase/client";
 
 export function Topbar() {
@@ -48,9 +48,7 @@ export function Topbar() {
           <Settings size={17} />
         </Link>
         <div className="flex items-center gap-3 pl-1">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-royal to-cyan text-sm font-semibold">
-            {initials(staff.name)}
-          </div>
+          <Avatar name={staff.name} url={staff.avatarUrl} size="md" accent />
           <div className="hidden text-sm sm:block">
             <p className="font-medium leading-tight">{staff.name || staff.email}</p>
             <p className="text-xs text-cyan">{ROLE_LABEL[staff.role]}</p>

@@ -5,14 +5,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowUpRight, Car, ShieldCheck, Siren, Users, Wifi } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { naira, initials, timeAgo, titleCase } from "@/lib/format";
+import { naira, timeAgo, titleCase } from "@/lib/format";
 import { Skeleton, StatusBadge } from "@/components/ui";
+import { Avatar } from "@/components/avatar";
 
 type Range = "7d" | "30d" | "90d" | "1y";
 const RANGE_DAYS: Record<Range, number> = { "7d": 7, "30d": 30, "90d": 90, "1y": 365 };
 
 type Counts = { ridesToday: number; active: number; online: number; pending: number; sos: number; passengers: number };
-type PendingDriver = { id: string; created_at: string; profiles: { full_name: string } | null };
+type PendingDriver = { id: string; created_at: string; profiles: { full_name: string; avatar_url: string | null } | null };
 type LiveRide = {
   id: string; status: string; pickup_address: string; dropoff_address: string;
   agreed_fare_kobo: number | null; estimated_fare_kobo: number; pricing_mode: string; vehicle_class: string;
@@ -43,7 +44,7 @@ export default function OverviewPage() {
     };
     const loadLists = async () => {
       const [p, l] = await Promise.all([
-        supabase.from("drivers").select("id, created_at, profiles!drivers_id_fkey(full_name)")
+        supabase.from("drivers").select("id, created_at, profiles!drivers_id_fkey(full_name, avatar_url)")
           .eq("status", "pending").order("created_at").limit(4),
         supabase.from("rides").select("id, status, pickup_address, dropoff_address, agreed_fare_kobo, estimated_fare_kobo, pricing_mode, vehicle_class")
           .in("status", ["requested", "accepted", "driver_arrived", "in_progress"]).order("requested_at", { ascending: false }).limit(4),
@@ -141,9 +142,7 @@ export default function OverviewPage() {
               {pending.map((d) => (
                 <li key={d.id}>
                   <Link href={`/drivers?open=${d.id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
-                    <div className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-xs font-semibold">
-                      {initials(d.profiles?.full_name)}
-                    </div>
+                    <Avatar name={d.profiles?.full_name} url={d.profiles?.avatar_url} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{d.profiles?.full_name || "Unnamed driver"}</p>
                       <p className="muted text-xs">Applied {timeAgo(d.created_at)}</p>

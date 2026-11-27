@@ -6,8 +6,9 @@ import { FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { logAudit } from "@/lib/audit";
 import { can } from "@/lib/roles";
-import { dateTime, initials, shortDate, titleCase } from "@/lib/format";
+import { dateTime, shortDate, titleCase } from "@/lib/format";
 import { useStaff } from "@/components/staff-context";
+import { Avatar } from "@/components/avatar";
 import { SERVICES, isService, serviceInfo, type ServiceType } from "@/lib/services";
 import {
   Badge, Button, Drawer, Empty, ErrorNote, PageHeader, SearchInput, StatusBadge, TableSkeleton, Tabs, td, th,
@@ -15,9 +16,9 @@ import {
 
 type Status = "pending" | "approved" | "rejected" | "suspended";
 type DriverRow = {
-  id: string; status: Status; service_type: ServiceType; licence_number: string | null; is_online: boolean;
+  id: string; status: Status; service_type: ServiceType; licence_number: string | null; home_address: string | null; is_online: boolean;
   rejection_reason: string | null; created_at: string; approved_at: string | null;
-  profiles: { full_name: string; email: string | null; phone: string | null; rating_avg: number; rating_count: number } | null;
+  profiles: { full_name: string; email: string | null; phone: string | null; avatar_url: string | null; rating_avg: number; rating_count: number } | null;
 };
 type Vehicle = {
   id: string; class: string; make: string; model: string; colour: string; year: number | null;
@@ -25,7 +26,7 @@ type Vehicle = {
 };
 type Doc = { id: string; type: string; storage_path: string; review: string; reviewer_note: string | null; expires_on: string | null; created_at: string };
 
-const SELECT = "id, status, service_type, licence_number, is_online, rejection_reason, created_at, approved_at, profiles!drivers_id_fkey(full_name, email, phone, rating_avg, rating_count)";
+const SELECT = "id, status, service_type, licence_number, home_address, is_online, rejection_reason, created_at, approved_at, profiles!drivers_id_fkey(full_name, email, phone, avatar_url, rating_avg, rating_count)";
 
 export default function DriversPage() {
   return <Suspense><Drivers /></Suspense>;
@@ -99,7 +100,7 @@ function Drivers() {
                 <tr key={d.id} className="hover:bg-white/[0.02]">
                   <td className={td}>
                     <div className="flex items-center gap-3">
-                      <div className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-xs font-semibold">{initials(d.profiles?.full_name)}</div>
+                      <Avatar name={d.profiles?.full_name} url={d.profiles?.avatar_url} />
                       <div><p className="font-medium">{d.profiles?.full_name || "Unnamed"}</p><p className="muted text-xs">{d.profiles?.email}</p></div>
                     </div>
                   </td>
@@ -179,7 +180,7 @@ function DriverDrawer({ id, onClose, onChanged }: { id: string; onClose: () => v
       {!driver ? <TableSkeleton rows={4} /> : (
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-royal to-cyan text-lg font-semibold">{initials(p?.full_name)}</div>
+            <Avatar name={p?.full_name} url={p?.avatar_url} size="lg" accent />
             <div className="min-w-0">
               <p className="text-lg font-semibold">{p?.full_name || "Unnamed driver"}</p>
               <p className="muted truncate text-sm">{p?.email ?? "No email"} · {p?.phone ?? "No phone"}</p>
@@ -207,6 +208,7 @@ function DriverDrawer({ id, onClose, onChanged }: { id: string; onClose: () => v
               </dd>
             </div>
             <Info label="Licence number" value={driver.licence_number ?? "—"} />
+            <Info label="Home address" value={driver.home_address ?? "—"} />
             <Info label="Applied" value={dateTime(driver.created_at)} />
             <Info label="Approved" value={dateTime(driver.approved_at)} />
             <Info label="Rating" value={p ? `${Number(p.rating_avg).toFixed(2)} from ${p.rating_count}` : "—"} />

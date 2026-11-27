@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { logAudit } from "@/lib/audit";
 import { can } from "@/lib/roles";
-import { dateTime, initials, naira, shortDate } from "@/lib/format";
+import { dateTime, naira, shortDate } from "@/lib/format";
 import { useStaff } from "@/components/staff-context";
+import { Avatar } from "@/components/avatar";
 import { Button, Drawer, Empty, ErrorNote, PageHeader, SearchInput, StatusBadge, TableSkeleton, Tabs, td, th } from "@/components/ui";
 
 type Person = {
-  id: string; full_name: string; email: string | null; phone: string | null; status: string;
+  id: string; full_name: string; email: string | null; phone: string | null; avatar_url: string | null; status: string;
   phone_verified: boolean; rating_avg: number; rating_count: number; created_at: string;
 };
 type Filter = "active" | "suspended";
@@ -24,7 +25,7 @@ export default function PassengersPage() {
 
   const load = useCallback(async () => {
     let req = createClient().from("profiles")
-      .select("id, full_name, email, phone, status, phone_verified, rating_avg, rating_count, created_at")
+      .select("id, full_name, email, phone, avatar_url, status, phone_verified, rating_avg, rating_count, created_at")
       .eq("role", "passenger").eq("status", filter).order("created_at", { ascending: false }).limit(200);
     const q = query.trim();
     if (q) req = req.or(`full_name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`);
@@ -53,7 +54,7 @@ export default function PassengersPage() {
               {rows.map((p) => (
                 <tr key={p.id} className="hover:bg-white/[0.02]">
                   <td className={td}><div className="flex items-center gap-3">
-                    <div className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-xs font-semibold">{initials(p.full_name)}</div>
+                    <Avatar name={p.full_name} url={p.avatar_url} />
                     <div><p className="font-medium">{p.full_name || "Unnamed"}</p><p className="muted text-xs">{p.email ?? "—"}</p></div>
                   </div></td>
                   <td className={td}>{p.phone ?? "—"} {p.phone_verified && <span className="text-xs text-success">✓</span>}</td>
