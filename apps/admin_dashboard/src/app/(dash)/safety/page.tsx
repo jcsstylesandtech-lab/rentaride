@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { MapPin, Siren } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useLiveChannel } from "@/lib/realtime";
 import { logAudit } from "@/lib/audit";
 import { can } from "@/lib/roles";
 import { dateTime, timeAgo } from "@/lib/format";
@@ -35,11 +36,7 @@ export default function SafetyPage() {
   }, [filter]);
 
   useEffect(() => { setRows(null); load(); }, [load]);
-  useEffect(() => {
-    const supabase = createClient();
-    const ch = supabase.channel("sos-page").on("postgres_changes", { event: "*", schema: "public", table: "sos_alerts" }, load).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [load]);
+  useLiveChannel("sos-page", (ch) => ch.on("postgres_changes", { event: "*", schema: "public", table: "sos_alerts" }, load), load);
 
   async function update(a: Alert, status: "acknowledged" | "resolved") {
     setBusy(a.id);

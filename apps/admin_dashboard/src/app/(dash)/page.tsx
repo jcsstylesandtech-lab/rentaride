@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowUpRight, Car, ShieldCheck, Siren, Users, Wifi } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useLiveChannel } from "@/lib/realtime";
 import { naira, timeAgo, titleCase } from "@/lib/format";
 import { Skeleton, StatusBadge } from "@/components/ui";
 import { Avatar } from "@/components/avatar";
@@ -26,11 +27,11 @@ export default function OverviewPage() {
   const [pending, setPending] = useState<PendingDriver[] | null>(null);
   const [live, setLive] = useState<LiveRide[] | null>(null);
 
-  useEffect(() => {
+  const loadCounts = useCallback(async () => {
     const supabase = createClient();
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const head = { count: "exact" as const, head: true };
-    const loadCounts = async () => {
+    {
       const [a, b, c, d, e, f] = await Promise.all([
         supabase.from("rides").select("id", head).gte("requested_at", today.toISOString()),
         supabase.from("rides").select("id", head).in("status", ["accepted", "driver_arrived", "in_progress"]),
@@ -41,8 +42,11 @@ export default function OverviewPage() {
       ]);
       setCounts({ ridesToday: a.count ?? 0, active: b.count ?? 0, online: c.count ?? 0,
         pending: d.count ?? 0, sos: e.count ?? 0, passengers: f.count ?? 0 });
-    };
-    const loadLists = async () => {
+    }
+  }, []);
+  const loadLists = useCallback(async () => {
+    const supabase = createClient();
+    {
       const [p, l] = await Promise.all([
         supabase.from("drivers").select("id, created_at, profiles!drivers_id_fkey(full_name, avatar_url)")
           .eq("status", "pending").order("created_at").limit(4),
@@ -51,15 +55,14 @@ export default function OverviewPage() {
       ]);
       setPending((p.data as unknown as PendingDriver[]) ?? []);
       setLive((l.data as LiveRide[]) ?? []);
-    };
-    loadCounts(); loadLists();
-    const channel = supabase.channel("overview")
-      .on("postgres_changes", { event: "*", schema: "public", table: "rides" }, () => { loadCounts(); loadLists(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "drivers" }, () => { loadCounts(); loadLists(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "sos_alerts" }, loadCounts)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    }
   }, []);
+  useEffect(() => { loadCounts(); loadLists(); }, [loadCounts, loadLists]);
+  useLiveChannel("overview", (ch) => ch
+    .on("postgres_changes", { event: "*", schema: "public", table: "rides" }, () => { loadCounts(); loadLists(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "drivers" }, () => { loadCounts(); loadLists(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "sos_alerts" }, loadCounts),
+  () => { loadCounts(); loadLists(); });
 
   useEffect(() => {
     setCompleted(null);

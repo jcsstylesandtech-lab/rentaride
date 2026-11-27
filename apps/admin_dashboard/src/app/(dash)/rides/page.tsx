@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useLiveChannel } from "@/lib/realtime";
 import { logAudit } from "@/lib/audit";
 import { can } from "@/lib/roles";
 import { dateTime, naira, titleCase } from "@/lib/format";
@@ -40,11 +41,7 @@ export default function RidesPage() {
   }, [filter]);
 
   useEffect(() => { setRows(null); load(); }, [load]);
-  useEffect(() => {
-    const supabase = createClient();
-    const ch = supabase.channel("rides-page").on("postgres_changes", { event: "*", schema: "public", table: "rides" }, load).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [load]);
+  useLiveChannel("rides-page", (ch) => ch.on("postgres_changes", { event: "*", schema: "public", table: "rides" }, load), load);
 
   return (
     <>

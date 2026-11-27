@@ -1,30 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Bell, Settings } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Bell, MessageSquare, Settings } from "lucide-react";
 import { useStaff } from "./staff-context";
 import { ROLE_LABEL } from "@/lib/roles";
 import { Avatar } from "./avatar";
 import { createClient } from "@/lib/supabase/client";
+import { useLiveChannel, useLiveStatus } from "@/lib/realtime";
 
 export function Topbar() {
   const staff = useStaff();
   const [openSos, setOpenSos] = useState(0);
+  const [unread, setUnread] = useState(0);
+  const status = useLiveStatus();
   const first = staff.name.split(" ")[0] || "there";
 
-  // Live count of open SOS alerts for the bell.
-  useEffect(() => {
+  // Live counts: open SOS alerts (bell) and unanswered support messages.
+  const load = useCallback(() => {
     const supabase = createClient();
-    const load = () =>
-      supabase.from("sos_alerts").select("id", { count: "exact", head: true }).neq("status", "resolved")
-        .then(({ count }) => setOpenSos(count ?? 0));
-    load();
-    const channel = supabase.channel("topbar-sos")
-      .on("postgres_changes", { event: "*", schema: "public", table: "sos_alerts" }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    supabase.from("sos_alerts").select("id", { count: "exact", head: true }).neq("status", "resolved")
+      .then(({ count }) => setOpenSos(count ?? 0));
+    supabase.rpc("unread_support_messages").then(({ data }) => setUnread(typeof data === "number" ? data : 0));
   }, []);
+  useEffect(() => { load(); }, [load]);
+  useLiveChannel("topbar", (ch) => ch
+    .on("postgres_changes", { event: "*", schema: "public", table: "sos_alerts" }, load)
+    .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, load), load);
 
   return (
     <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -35,6 +37,20 @@ export function Topbar() {
         <p className="muted text-sm">Oversight and control for the passenger and driver apps</p>
       </div>
       <div className="flex items-center gap-3">
+        <span role="status" title={status === "live" ? "Connected: updates appear instantly" : "Reconnecting to live updates…"}
+          className={`pill flex items-center gap-2 px-3 py-1.5 text-xs ${status === "live" ? "text-success" : "text-warning"}`}>
+          <span className={`h-2 w-2 rounded-full ${status === "live" ? "bg-success" : "animate-pulse bg-warning"}`} aria-hidden />
+          {status === "live" ? "Live" : status === "connecting" ? "Connecting…" : "Reconnecting…"}
+        </span>
+        <Link href="/support" aria-label={`${unread} unread support messages`}
+          className="pill relative grid h-10 w-10 place-items-center bg-white/5 hover:bg-white/10">
+          <MessageSquare size={17} />
+          {unread > 0 && (
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-royal px-1 text-[10px] font-semibold">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
+        </Link>
         <Link href="/safety" aria-label={`${openSos} open SOS alerts`}
           className="pill relative grid h-10 w-10 place-items-center bg-white/5 hover:bg-white/10">
           <Bell size={17} />

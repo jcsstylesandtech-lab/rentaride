@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useLiveChannel } from "@/lib/realtime";
 import { logAudit } from "@/lib/audit";
 import { can } from "@/lib/roles";
 import { dateTime, shortDate, titleCase } from "@/lib/format";
@@ -60,14 +61,9 @@ function Drivers() {
   }, [tab, service]);
 
   useEffect(() => { setRows(null); load(); }, [load]);
-  useEffect(() => {
-    const supabase = createClient();
-    const ch = supabase.channel("drivers-page")
-      .on("postgres_changes", { event: "*", schema: "public", table: "drivers" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "driver_documents" }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [load]);
+  useLiveChannel("drivers-page", (ch) => ch
+    .on("postgres_changes", { event: "*", schema: "public", table: "drivers" }, load)
+    .on("postgres_changes", { event: "*", schema: "public", table: "driver_documents" }, load), load);
 
   const q = query.trim().toLowerCase();
   const shown = rows?.filter((r) => !q || [r.profiles?.full_name, r.profiles?.email, r.profiles?.phone, r.licence_number]
