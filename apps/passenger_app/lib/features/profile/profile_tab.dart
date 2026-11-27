@@ -14,6 +14,7 @@ import '../home/presentation/widgets/account_tabs.dart';
 import '../map/map_data.dart';
 import '../messages/messages.dart';
 import '../messages/messages_tab.dart';
+import 'profile_photo.dart';
 
 /// Account, safety, saved places, payments, preferences, help, sign out.
 class ProfileTab extends ConsumerStatefulWidget {
@@ -29,6 +30,15 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
   bool _rideAlerts = true;
   bool _promotions = false;
   bool _signingOut = false;
+  bool _photoBusy = false;
+
+  Future<void> _changePhoto() async {
+    setState(() => _photoBusy = true);
+    final message = await changeProfilePhoto(context, ref);
+    if (!mounted) return;
+    setState(() => _photoBusy = false);
+    if (message != null) _toast(message);
+  }
 
   void _toast(String text) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -158,9 +168,17 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
     final user = ref.watch(authControllerProvider);
     if (user == null) return const SizedBox.shrink();
     final saved = ref.watch(savedPlacesProvider).value ?? const {};
+    final photo = ref.watch(profilePhotoProvider);
 
     return TabPage(
       title: 'Profile',
+      onRefresh: () async {
+        await ref.read(authControllerProvider.notifier).refresh();
+        await Future.wait([
+          ref.refresh(profilePhotoProvider.future),
+          ref.refresh(savedPlacesProvider.future),
+        ]);
+      },
       children: [
         // ── Header ──────────────────────────────────────────────────────
         Container(
@@ -176,15 +194,12 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
           ),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: RarColors.royal,
-                child: Text(
-                  user.firstName[0].toUpperCase(),
-                  style: RarTypography.headline.copyWith(
-                    color: RarColors.white,
-                  ),
-                ),
+              RarAvatar(
+                key: const ValueKey('profile-photo'),
+                name: user.fullName,
+                imageUrl: photo.value,
+                busy: _photoBusy,
+                onEdit: _changePhoto,
               ),
               const SizedBox(width: RarSpacing.lg),
               Expanded(

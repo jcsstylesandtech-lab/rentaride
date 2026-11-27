@@ -33,11 +33,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Take photos of your licence, ID and vehicle for verification.</string>
+	<string>Take your profile photo and photos of your licence, ID and vehicle for verification.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Rent A Ride shares your location while you are online so nearby riders can find you and follow their trip.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Choose photos of your licence, ID and vehicle for verification.</string>
+	<string>Choose your profile photo and photos of your licence, ID and vehicle for verification.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

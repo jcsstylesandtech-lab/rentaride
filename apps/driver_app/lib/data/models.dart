@@ -34,7 +34,7 @@ enum DocumentType {
 
 class Profile {
   const Profile({required this.id, required this.fullName, required this.email, required this.phone,
-      required this.role, required this.ratingAvg, required this.ratingCount});
+      required this.role, required this.ratingAvg, required this.ratingCount, this.avatarUrl});
   final String id;
   final String fullName;
   final String? email;
@@ -42,6 +42,7 @@ class Profile {
   final String role;
   final double ratingAvg;
   final int ratingCount;
+  final String? avatarUrl;
 
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
         id: j['id'] as String,
@@ -51,6 +52,7 @@ class Profile {
         role: j['role'] as String,
         ratingAvg: (j['rating_avg'] as num?)?.toDouble() ?? 5,
         ratingCount: (j['rating_count'] as int?) ?? 0,
+        avatarUrl: j['avatar_url'] as String?,
       );
 }
 

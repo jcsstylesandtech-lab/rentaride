@@ -13,6 +13,7 @@ import '../../../../app/router/app_routes.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../map/dashboard_map.dart';
 import '../../../map/map_data.dart';
+import '../../../profile/profile_photo.dart';
 import '../controllers/home_providers.dart';
 import '../screens/place_search_screen.dart';
 
@@ -188,15 +189,10 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                               label: 'Open profile',
                               child: GestureDetector(
                                 onTap: widget.onOpenProfile,
-                                child: CircleAvatar(
+                                child: RarAvatar(
                                   radius: 20,
-                                  backgroundColor: RarColors.royal,
-                                  child: Text(
-                                    (user?.firstName ?? '?')[0].toUpperCase(),
-                                    style: RarTypography.titleSmall.copyWith(
-                                      color: RarColors.white,
-                                    ),
-                                  ),
+                                  name: user?.firstName ?? '',
+                                  imageUrl: ref.watch(profilePhotoProvider).value,
                                 ),
                               ),
                             ),

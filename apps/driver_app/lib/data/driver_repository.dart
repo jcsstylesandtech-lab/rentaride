@@ -96,6 +96,32 @@ class DriverRepository {
     await _db.from('driver_documents').insert({'driver_id': _uid, 'type': type.db, 'storage_path': path});
   }
 
+  // ---------- Profile photo ----------
+  /// Riders see this photo during a trip. Stored at `avatars/<uid>/<file>`.
+  Future<void> uploadAvatar(Uint8List bytes, String extension) async {
+    final ext = switch (extension.toLowerCase()) { 'png' => 'png', 'webp' => 'webp', _ => 'jpg' };
+    final path = '$_uid/${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final bucket = _db.storage.from('avatars');
+    await bucket.uploadBinary(path, bytes,
+        fileOptions: FileOptions(contentType: ext == 'jpg' ? 'image/jpeg' : 'image/$ext'));
+    await _db.from('profiles').update({'avatar_url': bucket.getPublicUrl(path)}).eq('id', _uid);
+    await _deleteOldAvatars(keep: path);
+  }
+
+  Future<void> removeAvatar() async {
+    await _db.from('profiles').update({'avatar_url': null}).eq('id', _uid);
+    await _deleteOldAvatars();
+  }
+
+  Future<void> _deleteOldAvatars({String? keep}) async {
+    try {
+      final bucket = _db.storage.from('avatars');
+      final stale = [for (final f in await bucket.list(path: _uid)) '$_uid/${f.name}']
+          .where((p) => p != keep).toList();
+      if (stale.isNotEmpty) await bucket.remove(stale);
+    } catch (_) {} // unreferenced leftovers are harmless
+  }
+
   // ---------- Driving ----------
   Future<void> setOnline(bool online) => _db.from('drivers').update({'is_online': online}).eq('id', _uid);
 

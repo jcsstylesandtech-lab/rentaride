@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:rar_design_system/rar_design_system.dart';
 
 import '../core/format.dart';
@@ -45,12 +48,18 @@ class AccountTab extends ConsumerWidget {
           trailing: trailing,
         );
 
-    return ListView(children: [
+    return RefreshIndicator(
+      color: RarColors.cyan,
+      onRefresh: () async {
+        ref.invalidate(driverStateProvider);
+        try {
+          await ref.read(driverStateProvider.future);
+        } catch (_) {} // the tab keeps showing the last good details
+      },
+      child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
       const SizedBox(height: RarSpacing.md),
       Panel(child: Row(children: [
-        CircleAvatar(radius: 30, backgroundColor: RarColors.royal,
-            child: Text((p?.fullName.isNotEmpty ?? false) ? p!.fullName[0].toUpperCase() : '?',
-                style: RarTypography.headline.copyWith(color: RarColors.white))),
+        _ProfilePhoto(name: p?.fullName ?? '', url: p?.avatarUrl),
         const SizedBox(width: RarSpacing.lg),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(p?.fullName ?? '', style: RarTypography.title.copyWith(color: RarColors.white)),
@@ -106,6 +115,67 @@ class AccountTab extends ConsumerWidget {
       const SizedBox(height: RarSpacing.xl),
       RarButton.glass(label: 'Sign out', leadingIcon: Icons.logout_rounded, onPressed: () => _signOut(context, ref)),
       const SizedBox(height: RarSpacing.xxl),
-    ]);
+    ]),
+    );
   }
+}
+
+/// The driver's photo; tap to take, choose or remove one.
+class _ProfilePhoto extends ConsumerStatefulWidget {
+  const _ProfilePhoto({required this.name, required this.url});
+  final String name;
+  final String? url;
+
+  @override
+  ConsumerState<_ProfilePhoto> createState() => _ProfilePhotoState();
+}
+
+class _ProfilePhotoState extends ConsumerState<_ProfilePhoto> {
+  bool _busy = false;
+
+  Future<void> _change() async {
+    final choice = await showPhotoSourceSheet(context, hasPhoto: widget.url != null, cameraAvailable: !kIsWeb);
+    if (choice == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final repo = ref.read(repoProvider);
+      if (choice == PhotoSourceChoice.remove) {
+        await repo.removeAvatar();
+        if (mounted) showSnack(context, 'Profile photo removed');
+      } else {
+        final file = await ImagePicker().pickImage(
+          source: choice == PhotoSourceChoice.camera ? ImageSource.camera : ImageSource.gallery,
+          preferredCameraDevice: CameraDevice.front,
+          maxWidth: 800, maxHeight: 800, imageQuality: 85,
+        );
+        if (file == null) return;
+        final bytes = await file.readAsBytes();
+        if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+          if (mounted) showSnack(context, 'That photo is too large. Choose one under 5 MB.', error: true);
+          return;
+        }
+        await repo.uploadAvatar(bytes, file.name.contains('.') ? file.name.split('.').last : 'jpg');
+        if (mounted) showSnack(context, 'Profile photo updated');
+      }
+      ref.invalidate(driverStateProvider);
+    } on PlatformException catch (e) {
+      if (mounted) {
+        showSnack(context, e.code.contains('camera') ? 'Camera not available here. Choose from photos.' : friendlyError(e),
+            error: true);
+      }
+    } catch (e) {
+      if (mounted) showSnack(context, friendlyError(e), error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => RarAvatar(
+        key: const ValueKey('profile-photo'),
+        name: widget.name,
+        imageUrl: widget.url,
+        busy: _busy,
+        onEdit: _change,
+      );
 }

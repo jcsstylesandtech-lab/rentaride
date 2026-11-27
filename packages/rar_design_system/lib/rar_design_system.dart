@@ -6,6 +6,8 @@ library;
 
 export 'src/components/feature_tile.dart';
 export 'src/components/indicators.dart';
+export 'src/components/rar_avatar.dart';
+export 'src/components/rar_photo_sheet.dart';
 export 'src/components/rar_button.dart';
 export 'src/components/rar_logo.dart';
 export 'src/components/rar_text_field.dart';
