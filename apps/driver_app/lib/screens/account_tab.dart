@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:rar_chat/rar_chat.dart';
 import 'package:rar_design_system/rar_design_system.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../core/format.dart';
 import '../state/app_control.dart';
@@ -30,6 +32,34 @@ class AccountTab extends ConsumerWidget {
     final repo = ref.read(repoProvider);
     try { await repo.setOnline(false); } catch (_) {}
     await repo.signOut();
+  }
+
+  Widget _helpTile(BuildContext context,
+      {required String key,
+      required IconData icon,
+      required String title,
+      required String subtitle,
+      required String kind,
+      required String intro}) {
+    return ListTile(
+      key: ValueKey(key),
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: RarColors.cyan),
+      title: Text(title, style: RarTypography.body.copyWith(color: RarColors.white)),
+      subtitle: Text(subtitle, style: onDarkMuted),
+      trailing: const Icon(Icons.chevron_right_rounded, color: RarColors.textOnDarkMuted),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => LiveChatScreen(
+          title: title,
+          subtitle: subtitle,
+          icon: icon,
+          peerLabel: kind == 'safety' ? 'Safety team' : 'Support',
+          intro: intro,
+          dark: true,
+          open: () => openTeamConversation(Supabase.instance.client, kind),
+        ),
+      )),
+    );
   }
 
   @override
@@ -96,6 +126,30 @@ class AccountTab extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right_rounded, color: RarColors.textOnDarkMuted),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NotificationsScreen())),
         ),
+      ),
+      const SizedBox(height: RarSpacing.lg),
+      // Help from the Rent A Ride team; replies from the dashboard arrive live.
+      Panel(
+        padding: const EdgeInsets.symmetric(horizontal: RarSpacing.lg, vertical: RarSpacing.xs),
+        child: Column(children: [
+          _helpTile(context,
+              key: 'open-support-chat',
+              icon: Icons.support_agent_rounded,
+              title: 'Driver support',
+              subtitle: 'Trips, earnings, payouts and your account',
+              kind: 'support',
+              intro: 'Hi ${p?.fullName.split(' ').first ?? 'there'}, need help? Message the Rent A Ride '
+                  'driver team about trips, earnings, payouts or your account.'),
+          const Divider(height: 1, color: RarColors.glassBorderDark),
+          _helpTile(context,
+              key: 'open-safety-chat',
+              icon: Icons.shield_rounded,
+              title: 'Safety team',
+              subtitle: 'Report an incident or a safety concern',
+              kind: 'safety',
+              intro: 'If you are in danger, call 112 first. To report an incident after a trip, '
+                  'tell us the date, time and what happened.'),
+        ]),
       ),
       const SizedBox(height: RarSpacing.lg),
       Text('Documents', style: RarTypography.titleSmall.copyWith(color: RarColors.white)),

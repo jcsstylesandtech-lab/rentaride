@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rar_chat/rar_chat.dart';
 import 'package:rar_design_system/rar_design_system.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
+import '../../core/config/app_config.dart';
 import '../home/presentation/widgets/account_tabs.dart';
 import 'messages.dart';
 
@@ -12,13 +15,33 @@ String _time(DateTime t) {
   return '$h:$m';
 }
 
-/// Opens the chat for [conversationId].
+/// Opens the chat for [conversationId] (`support` or `safety`).
+///
+/// With the live backend this is the shared real-time chat (typing
+/// indicator, reconnects, retry); on demo data it is the local chat.
 void openChat(BuildContext context, String conversationId) {
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => ChatScreen(conversationId: conversationId),
-    ),
-  );
+  final container = ProviderScope.containerOf(context, listen: false);
+  if (!AppConfig.hasBackend) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => ChatScreen(conversationId: conversationId)),
+    );
+    return;
+  }
+  final thread = container.read(messagesProvider).where((c) => c.id == conversationId).firstOrNull;
+  final safety = conversationId == MessagesController.safetyId;
+  Navigator.of(context)
+      .push(MaterialPageRoute<void>(
+        builder: (_) => LiveChatScreen(
+          title: thread?.title ?? (safety ? 'Safety team' : 'Rent A Ride Support'),
+          subtitle: thread?.subtitle,
+          icon: thread?.icon ?? Icons.support_agent_rounded,
+          peerLabel: safety ? 'Safety team' : 'Support',
+          intro: thread?.messages.firstOrNull?.text,
+          open: () => openTeamConversation(Supabase.instance.client, conversationId),
+        ),
+      ))
+      // Back on the list: update previews and unread badges.
+      .then((_) => container.read(messagesProvider.notifier).refresh());
 }
 
 /// List of conversations.

@@ -118,6 +118,7 @@ class RidesRepository {
       rating: (r['driver_rating'] as num?)?.toDouble() ?? 5,
       vehicle: [r['vehicle_colour'], r['vehicle_make'], r['vehicle_model']].whereType<String>().join(' '),
       plate: (r['plate_number'] as String?) ?? '',
+      avatarUrl: r['driver_avatar'] as String?,
     );
   }
 

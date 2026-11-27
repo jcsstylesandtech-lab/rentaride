@@ -808,6 +808,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.1"
+  rar_chat:
+    dependency: "direct main"
+    description:
+      path: "../../packages/rar_chat"
+      relative: true
+    source: path
+    version: "0.1.0"
   rar_design_system:
     dependency: "direct main"
     description:

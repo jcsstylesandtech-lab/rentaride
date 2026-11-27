@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rar_design_system/rar_design_system.dart';
+import 'package:rar_chat/rar_chat.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException, RealtimeChannel;
 
+import '../../core/config/app_config.dart';
 import '../home/presentation/controllers/home_providers.dart';
 import 'ride_models.dart';
 import 'searching_card.dart';
@@ -205,6 +207,16 @@ class _RideStatusScreenState extends ConsumerState<RideStatusScreen> {
         return [
           _DriverCard(driver: _driver),
           const SizedBox(height: RarSpacing.md),
+          // Chat and call are only offered while the driver is matched to this trip.
+          if (AppConfig.hasBackend) ...[
+            RideContactButtons(
+              rideId: ride.id,
+              live: true,
+              peerLabel: ride.isDelivery ? 'Your ${ride.courier}' : 'Your driver',
+              peerName: _driver?.name,
+            ),
+            const SizedBox(height: RarSpacing.md),
+          ],
           if (ride.isDelivery) ...[
             _PackageCard(ride: ride),
             const SizedBox(height: RarSpacing.sm),
@@ -311,8 +323,7 @@ class _DriverCard extends StatelessWidget {
       child: d == null
           ? const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()))
           : Row(children: [
-              CircleAvatar(radius: 26, backgroundColor: RarColors.royal,
-                  child: Text(d.name.isEmpty ? '?' : d.name[0], style: RarTypography.title.copyWith(color: RarColors.white))),
+              RarAvatar(name: d.name, imageUrl: d.avatarUrl, radius: 26),
               const SizedBox(width: RarSpacing.md),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(d.name, style: RarTypography.titleSmall.copyWith(color: RarColors.navy)),

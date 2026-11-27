@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:rar_chat/rar_chat.dart';
 import 'package:rar_design_system/rar_design_system.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -446,6 +447,15 @@ class _TripCard extends StatelessWidget {
           Expanded(child: Text(passenger == null ? 'Loading…' : '${trip.isDelivery ? 'Sender: ' : ''}${passenger!.name} · ★ ${passenger!.rating.toStringAsFixed(1)}',
               style: RarTypography.titleSmall.copyWith(color: RarColors.white))),
         ]),
+        const SizedBox(height: RarSpacing.md),
+        // Only while matched for this pickup or on the trip; hidden afterwards.
+        RideContactButtons(
+          rideId: trip.id,
+          live: const {'accepted', 'driver_arrived', 'in_progress'}.contains(trip.status),
+          peerLabel: trip.isDelivery ? 'The sender' : 'Your rider',
+          peerName: passenger?.name,
+          dark: true,
+        ),
         const SizedBox(height: RarSpacing.md),
         _Place(icon: Icons.trip_origin_rounded, color: RarColors.cyan, text: trip.pickupAddress),
         _Place(icon: Icons.location_on_rounded, color: RarColors.danger, text: trip.dropoffAddress),

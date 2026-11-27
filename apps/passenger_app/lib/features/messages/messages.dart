@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'
-    show PostgresChangeEvent, PostgresChangeFilter, PostgresChangeFilterType, RealtimeChannel, Supabase;
+    show PostgresChangeEvent, PostgresChangeFilter, PostgresChangeFilterType, RealtimeChannel,
+        RealtimeSubscribeStatus, Supabase;
 
 import '../../core/config/app_config.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
@@ -82,7 +86,11 @@ class MessagesController extends Notifier<List<Conversation>> {
     if (_live) {
       _dbIds.clear();
       ref.onDispose(() {
+        _retry?.cancel();
+        _lifecycle?.dispose();
+        _lifecycle = null;
         final c = _channel;
+        _channel = null;
         if (c != null) Supabase.instance.client.removeChannel(c);
       });
       Future.microtask(_connect);
@@ -143,7 +151,33 @@ class MessagesController extends Notifier<List<Conversation>> {
         }
       }
       if (!ref.mounted) return;
-      _channel = db
+      _subscribe(uid);
+      await _reload();
+    } catch (_) {
+      // Offline: try again shortly.
+      _retryLater();
+    }
+  }
+
+  Timer? _retry;
+  AppLifecycleListener? _lifecycle;
+  int _attempt = 0;
+
+  /// Listens for new messages. If the connection drops (phone asleep,
+  /// network change) it reconnects with back-off, and every (re)connect
+  /// reloads, so a reply sent while offline still shows up.
+  void _subscribe(String uid) {
+    final db = Supabase.instance.client;
+    _lifecycle ??= AppLifecycleListener(onResume: () {
+      if (_dbIds.isEmpty) {
+        _connect();
+      } else {
+        _reload().ignore();
+      }
+    });
+    final old = _channel;
+    if (old != null) db.removeChannel(old);
+    _channel = db
           .channel('passenger-messages-$uid')
           .onPostgresChanges(
             event: PostgresChangeEvent.all,
@@ -156,9 +190,30 @@ class MessagesController extends Notifier<List<Conversation>> {
             ),
             callback: (_) => _reload(),
           )
-          .subscribe();
-      await _reload();
-    } catch (_) {/* offline: threads stay local until next launch */}
+          .subscribe((status, _) {
+            if (!ref.mounted) return;
+            if (status == RealtimeSubscribeStatus.subscribed) {
+              _attempt = 0;
+              _reload().ignore();
+            } else {
+              _retryLater(resubscribe: true);
+            }
+          });
+  }
+
+  void _retryLater({bool resubscribe = false}) {
+    if (!ref.mounted || (_retry?.isActive ?? false)) return;
+    final seconds = math.min(30, 1 << math.min(_attempt, 5));
+    _attempt++;
+    _retry = Timer(Duration(seconds: seconds), () {
+      if (!ref.mounted) return;
+      final uid = Supabase.instance.client.auth.currentUser?.id;
+      if (resubscribe && uid != null && _dbIds.isNotEmpty) {
+        _subscribe(uid);
+      } else {
+        _connect();
+      }
+    });
   }
 
   /// Pull-to-refresh: fetches the latest messages now.

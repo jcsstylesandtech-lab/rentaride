@@ -174,11 +174,12 @@ class DriverOffer {
 
 /// The assigned driver and car (from `ride_party`) — never a phone number.
 class AssignedDriver {
-  const AssignedDriver({required this.name, required this.rating, required this.vehicle, required this.plate});
+  const AssignedDriver({required this.name, required this.rating, required this.vehicle, required this.plate, this.avatarUrl});
   final String name;
   final double rating;
   final String vehicle;
   final String plate;
+  final String? avatarUrl;
 }
 
 String nairaKobo(int kobo) => formatNaira(kobo / 100);

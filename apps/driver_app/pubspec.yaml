@@ -41,6 +41,8 @@ dependencies:
   url_launcher: ^6.3.2
   rar_design_system:
     path: ../../packages/rar_design_system
+  rar_chat:
+    path: ../../packages/rar_chat
   google_maps_flutter: ^2.18.1
 
 dev_dependencies:
