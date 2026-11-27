@@ -50,6 +50,13 @@ class AuthController extends Notifier<AuthUser?> {
 
   bool get isDemo => _repo.isDemo;
 
+  /// Reloads the signed-in passenger's details (pull-to-refresh).
+  Future<void> refresh() async {
+    if (state == null) return;
+    final user = await _repo.currentUser();
+    if (user != null) state = user;
+  }
+
   Future<void> logInWithEmail(String email, String password) async {
     state = await _repo.logInWithEmail(email: email.trim(), password: password);
   }

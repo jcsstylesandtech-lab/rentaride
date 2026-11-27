@@ -16,11 +16,15 @@ class TabPage extends StatelessWidget {
     required this.title,
     required this.children,
     this.trailing,
+    this.onRefresh,
   });
 
   final String title;
   final List<Widget> children;
   final Widget? trailing;
+
+  /// Pull down to reload. The spinner stays until the future completes.
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
@@ -28,7 +32,9 @@ class TabPage extends StatelessWidget {
     child: SafeArea(
       bottom: false,
       child: RarContentWidth(
-        child: ListView(
+        child: _pullToRefresh(ListView(
+          // Always scrollable, so short pages can still be pulled down.
+          physics: onRefresh == null ? null : const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
             RarSpacing.gutter,
             RarSpacing.lg,
@@ -50,10 +56,26 @@ class TabPage extends StatelessWidget {
             const SizedBox(height: RarSpacing.xl),
             ...children,
           ],
-        ),
+        )),
       ),
     ),
   );
+
+  Widget _pullToRefresh(Widget list) {
+    final refresh = onRefresh;
+    if (refresh == null) return list;
+    return RefreshIndicator(
+      color: RarColors.royal,
+      onRefresh: () async {
+        try {
+          await refresh();
+        } catch (_) {
+          // The page shows its own error state; just stop the spinner.
+        }
+      },
+      child: list,
+    );
+  }
 }
 
 /// Icon, title, explanation and an optional action, for empty lists.
@@ -116,6 +138,7 @@ class RidesTab extends ConsumerWidget {
     );
     return TabPage(
       title: 'Your rides',
+      onRefresh: () => ref.refresh(rideHistoryProvider.future),
       children: history.when(
         loading: () => const [Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))],
         error: (_, _) => [

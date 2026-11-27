@@ -161,6 +161,9 @@ class MessagesController extends Notifier<List<Conversation>> {
     } catch (_) {/* offline: threads stay local until next launch */}
   }
 
+  /// Pull-to-refresh: fetches the latest messages now.
+  Future<void> refresh() => _reload();
+
   /// Rebuilds both threads from the database (keeping the intro message).
   Future<void> _reload() async {
     final db = Supabase.instance.client;

@@ -97,6 +97,14 @@ class _WalletTabState extends ConsumerState<WalletTab> with WidgetsBindingObserv
 
     return TabPage(
       title: 'Wallet',
+      onRefresh: demo
+          ? null
+          : () async {
+              ref
+                ..invalidate(walletBalanceProvider)
+                ..invalidate(walletHistoryProvider);
+              await ref.read(walletHistoryProvider.future);
+            },
       children: [
         _BalanceCard(
           balance: balance,

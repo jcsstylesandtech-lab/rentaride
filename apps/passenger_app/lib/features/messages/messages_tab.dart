@@ -31,6 +31,7 @@ class MessagesTab extends ConsumerWidget {
 
     return TabPage(
       title: 'Messages',
+      onRefresh: () => ref.read(messagesProvider.notifier).refresh(),
       children: [
         for (final c in conversations) ...[
           _ConversationTile(
