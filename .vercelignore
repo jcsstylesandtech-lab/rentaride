@@ -1,0 +1,11 @@
+# Vercel builds only the admin dashboard (Project Settings → Root Directory
+# = apps/admin_dashboard). Upload nothing else: the Flutter apps hold local
+# secrets (Maps key, env/dev.json) and large build folders.
+/*
+!/apps
+/apps/*
+!/apps/admin_dashboard
+/apps/admin_dashboard/node_modules
+/apps/admin_dashboard/.next
+/apps/admin_dashboard/.vercel
+/apps/admin_dashboard/.env*
