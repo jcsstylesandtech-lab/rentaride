@@ -186,6 +186,10 @@ class _DriveTabState extends ConsumerState<DriveTab> {
             const SizedBox(height: RarSpacing.md),
             DriveMap(me: _me, requests: _requests ?? const [], trip: trip),
           ],
+          if (trip == null) ...[
+            const SizedBox(height: RarSpacing.md),
+            const _JobsChooser(),
+          ],
           const SizedBox(height: RarSpacing.lg),
           if (trip != null)
             _TripCard(
@@ -216,7 +220,7 @@ class _DriveTabState extends ConsumerState<DriveTab> {
             ]))
           else ...[
             Row(children: [
-              Text('Ride requests near you', style: RarTypography.titleSmall.copyWith(color: RarColors.white)),
+              Text('Jobs near you', style: RarTypography.titleSmall.copyWith(color: RarColors.white)),
               const Spacer(),
               if (_requests == null) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: RarColors.cyan)),
             ]),
@@ -243,6 +247,86 @@ class _DriveTabState extends ConsumerState<DriveTab> {
       ),
     );
   }
+}
+
+/// Rides / Dispatch / Delivery: the jobs this driver wants. A kind of job
+/// needs an approved vehicle that fits it (motorbike for dispatch, car or
+/// van for delivery).
+class _JobsChooser extends ConsumerStatefulWidget {
+  const _JobsChooser();
+  @override
+  ConsumerState<_JobsChooser> createState() => _JobsChooserState();
+}
+
+class _JobsChooserState extends ConsumerState<_JobsChooser> {
+  bool _saving = false;
+
+  Future<void> _toggle(List<ServiceType> current, ServiceType t) async {
+    final next = current.contains(t) ? [...current.where((s) => s != t)] : [...current, t];
+    if (next.isEmpty) {
+      showSnack(context, 'Keep at least one kind of job switched on.', error: true);
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(repoProvider).setServices(next);
+      ref.invalidate(driverStateProvider);
+      if (mounted) {
+        showSnack(context, current.contains(t) ? "You won't get ${t.shortLabel.toLowerCase()} jobs." : "You'll now get ${t.shortLabel.toLowerCase()} jobs too.");
+      }
+    } catch (_) {
+      if (mounted) showSnack(context, "Couldn't save your job choice. Check your connection and try again.", error: true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(driverStateProvider).value;
+    final d = s?.driver;
+    if (s == null || d == null) return const SizedBox.shrink();
+    final approved = {for (final v in s.vehicles) if (v.review == 'approved') v.vehicleClass};
+    return Panel(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Jobs you take', style: RarTypography.titleSmall.copyWith(color: RarColors.white)),
+        const SizedBox(height: RarSpacing.sm),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final t in ServiceType.values)
+            Builder(builder: (context) {
+              final fits = t.vehicleClasses.any(approved.contains);
+              final on = d.services.contains(t);
+              return FilterChip(
+                key: ValueKey('jobs-${t.name}'),
+                selected: on && fits,
+                showCheckmark: true,
+                label: Text(t.shortLabel),
+                avatar: on && fits ? null : Icon(switch (t) {
+                  ServiceType.ride => Icons.directions_car_rounded,
+                  ServiceType.dispatch => Icons.two_wheeler_rounded,
+                  ServiceType.delivery => Icons.local_shipping_rounded,
+                }, size: 18),
+                selectedColor: RarColors.royal,
+                onSelected: _saving || !fits ? null : (_) => _toggle(d.services, t),
+              );
+            }),
+        ]),
+        const SizedBox(height: RarSpacing.sm),
+        Text(
+          [
+            if (!ServiceType.dispatch.vehicleClasses.any(approved.contains)) 'Dispatch needs an approved motorbike.',
+            if (!ServiceType.delivery.vehicleClasses.any(approved.contains)) 'Delivery needs an approved car or van.',
+            if (!ServiceType.ride.vehicleClasses.any(approved.contains)) 'Rides need an approved car.',
+          ].join(' ').ifEmpty('Switch on every kind of job you want to see.'),
+          style: onDarkMuted,
+        ),
+      ]),
+    );
+  }
+}
+
+extension on String {
+  String ifEmpty(String other) => isEmpty ? other : this;
 }
 
 class _OnlineSwitch extends StatelessWidget {

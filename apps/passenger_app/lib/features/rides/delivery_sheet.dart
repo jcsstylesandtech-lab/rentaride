@@ -15,21 +15,26 @@ import '../wallet/payment_picker.dart';
 /// Send a package: choose bike / car / van and the size, say who receives
 /// it, then request. Fixed fare, paid in cash.
 Future<void> showDeliveryOptions(BuildContext context,
-    {required Place pickup, required Place dropoff, required TripEstimate estimate}) {
+    {required Place pickup, required Place dropoff, required TripEstimate estimate,
+    DeliveryOption initial = DeliveryOption.dispatchBike}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: RarColors.white,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-    builder: (_) => DeliverySheet(pickup: pickup, dropoff: dropoff, estimate: estimate),
+    builder: (_) => DeliverySheet(pickup: pickup, dropoff: dropoff, estimate: estimate, initial: initial),
   );
 }
 
 class DeliverySheet extends ConsumerStatefulWidget {
-  const DeliverySheet({super.key, required this.pickup, required this.dropoff, required this.estimate});
+  const DeliverySheet({super.key, required this.pickup, required this.dropoff, required this.estimate,
+      this.initial = DeliveryOption.dispatchBike});
   final Place pickup;
   final Place dropoff;
   final TripEstimate estimate;
+
+  /// Dispatch bike when the rider chose Dispatch, car when they chose Delivery.
+  final DeliveryOption initial;
 
   @override
   ConsumerState<DeliverySheet> createState() => _DeliverySheetState();
@@ -40,7 +45,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _note = TextEditingController();
-  DeliveryOption _option = DeliveryOption.dispatchBike;
+  late DeliveryOption _option = widget.initial;
   PackageSize _size = PackageSize.small;
   PaymentChoice _payment = PaymentChoice.cash;
   bool _busy = false;

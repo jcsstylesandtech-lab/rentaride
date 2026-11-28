@@ -126,6 +126,10 @@ class DriverRepository {
   }
 
   // ---------- Driving ----------
+  /// Which jobs the driver takes; at least one.
+  Future<void> setServices(List<ServiceType> services) =>
+      _db.from('drivers').update({'services': [for (final s in services) s.name]}).eq('id', _uid);
+
   Future<void> setOnline(bool online) => _db.from('drivers').update({'is_online': online}).eq('id', _uid);
 
   Future<void> reportLocation(double lat, double lng, double? heading, double? speedKmh) =>

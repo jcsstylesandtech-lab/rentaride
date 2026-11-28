@@ -11,6 +11,19 @@ enum ServiceType {
   const ServiceType(this.label, this.hint);
   final String label;
   final String hint;
+
+  /// Vehicle classes that can take this kind of job.
+  Set<VehicleClass> get vehicleClasses => switch (this) {
+        ServiceType.ride => const {VehicleClass.economy, VehicleClass.comfort, VehicleClass.premium, VehicleClass.suv},
+        ServiceType.dispatch => const {VehicleClass.motorcycle},
+        ServiceType.delivery => const {VehicleClass.economy, VehicleClass.suv},
+      };
+
+  String get shortLabel => switch (this) {
+        ServiceType.ride => 'Rides',
+        ServiceType.dispatch => 'Dispatch',
+        ServiceType.delivery => 'Delivery',
+      };
 }
 
 enum VehicleClass { economy, comfort, premium, suv, motorcycle }
@@ -64,10 +77,16 @@ class Profile {
 
 class Driver {
   const Driver({required this.id, required this.status, required this.licenceNumber,
-      required this.isOnline, required this.rejectionReason, this.serviceType = ServiceType.ride, this.homeAddress});
+      required this.isOnline, required this.rejectionReason, this.serviceType = ServiceType.ride, this.homeAddress,
+      List<ServiceType>? services})
+      : _services = services;
   final String id;
   final DriverStatus status;
   final ServiceType serviceType;
+
+  /// The kinds of jobs the driver takes (rides, dispatch, delivery).
+  List<ServiceType> get services => (_services == null || _services.isEmpty) ? [serviceType] : _services;
+  final List<ServiceType>? _services;
   final String? licenceNumber;
   final String? homeAddress;
   final bool isOnline;
@@ -77,6 +96,9 @@ class Driver {
         id: j['id'] as String,
         status: DriverStatus.values.byName(j['status'] as String),
         serviceType: ServiceType.values.asNameMap()[j['service_type']] ?? ServiceType.ride,
+        services: j['services'] is List
+            ? [for (final s in j['services'] as List) ?ServiceType.values.asNameMap()[s]]
+            : null,
         licenceNumber: j['licence_number'] as String?,
         homeAddress: j['home_address'] as String?,
         isOnline: j['is_online'] as bool? ?? false,

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../app_control/app_control.dart';
 import '../../../rides/delivery_sheet.dart';
+import '../../../rides/ride_models.dart' show DeliveryOption;
 import '../../../rides/ride_options_sheet.dart';
 
 import '../../../../app/router/app_routes.dart';
@@ -349,6 +350,8 @@ class _PlanPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final saved = ref.watch(savedPlacesProvider);
     final recent = ref.watch(recentDestinationsProvider);
+    final service = ref.watch(serviceChoiceProvider);
+    final whereTo = service == 'ride' ? 'Where to?' : 'Where should it go?';
 
     void choose(Place p) => ref.read(destinationProvider.notifier).choose(p);
 
@@ -379,9 +382,11 @@ class _PlanPanel extends ConsumerWidget {
           subtitle: pickup?.address ?? '',
         ),
         const SizedBox(height: RarSpacing.md),
+        const _ServiceChooser(),
+        const SizedBox(height: RarSpacing.md),
         Semantics(
           button: true,
-          label: 'Where to? Search for a destination',
+          label: '$whereTo Search for a destination',
           excludeSemantics: true,
           child: Material(
             color: RarColors.background,
@@ -401,7 +406,7 @@ class _PlanPanel extends ConsumerWidget {
                     const Icon(Icons.search_rounded, color: RarColors.navy),
                     const SizedBox(width: 12),
                     Text(
-                      'Where to?',
+                      whereTo,
                       style: RarTypography.body.copyWith(
                         fontSize: 16,
                         color: RarColors.textSecondary,
@@ -497,6 +502,7 @@ class _TripPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final estimate = ref.watch(tripEstimateProvider);
     final control = ref.watch(appSettingsProvider).value ?? const AppSettings();
+    final service = ref.watch(serviceChoiceProvider);
     final ready = AppConfig.hasBackend && pickup != null && estimate != null;
 
     return Column(
@@ -566,24 +572,41 @@ class _TripPanel extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: RarSpacing.lg),
-        RarButton.primary(
-          key: const ValueKey('choose-ride'),
-          label: 'Choose a ride',
-          trailingIcon: Icons.arrow_forward_rounded,
-          onPressed: ready && control.ridesEnabled
-              ? () => showRideOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate)
-              : null,
-          semanticLabel: AppConfig.hasBackend ? null : 'Choose a ride. Needs the live server.',
-        ),
-        const SizedBox(height: RarSpacing.sm),
-        RarButton.outline(
-          key: const ValueKey('send-package'),
-          label: 'Send a package',
-          leadingIcon: Icons.inventory_2_rounded,
-          onPressed: ready && control.anyDeliveryEnabled
-              ? () => showDeliveryOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate)
-              : null,
-        ),
+        ...() {
+          Widget rideButton(bool primary) {
+            final onPressed = ready && control.ridesEnabled
+                ? () => showRideOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate)
+                : null;
+            final semantic = AppConfig.hasBackend ? null : 'Choose a ride. Needs the live server.';
+            return primary
+                ? RarButton.primary(key: const ValueKey('choose-ride'), label: 'Choose a ride',
+                    trailingIcon: Icons.arrow_forward_rounded, onPressed: onPressed, semanticLabel: semantic)
+                : RarButton.outline(key: const ValueKey('choose-ride'), label: 'Book a ride instead',
+                    leadingIcon: Icons.directions_car_rounded, onPressed: onPressed);
+          }
+          Widget packageButton(bool primary) {
+            final initial = service == 'delivery' ? DeliveryOption.deliveryCar : DeliveryOption.dispatchBike;
+            final onPressed = ready && control.anyDeliveryEnabled
+                ? () => showDeliveryOptions(context, pickup: pickup!, dropoff: destination, estimate: estimate, initial: initial)
+                : null;
+            final label = switch (service) {
+              'dispatch' => 'Choose a dispatch rider',
+              'delivery' => 'Choose a delivery vehicle',
+              _ => 'Send a package',
+            };
+            return primary
+                ? RarButton.primary(key: const ValueKey('send-package'), label: label,
+                    trailingIcon: Icons.arrow_forward_rounded, onPressed: onPressed)
+                : RarButton.outline(key: const ValueKey('send-package'), label: label,
+                    leadingIcon: Icons.inventory_2_rounded, onPressed: onPressed);
+          }
+          final ride = service == 'ride';
+          return [
+            ride ? rideButton(true) : packageButton(true),
+            const SizedBox(height: RarSpacing.sm),
+            ride ? packageButton(false) : rideButton(false),
+          ];
+        }(),
         if (!control.ridesEnabled || !control.anyDeliveryEnabled) ...[
           const SizedBox(height: 6),
           Text(
@@ -701,6 +724,69 @@ class _Metric extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Ride, Dispatch or Delivery: what the rider wants before choosing where.
+class _ServiceChooser extends ConsumerWidget {
+  const _ServiceChooser();
+
+  static const _options = [
+    ('ride', Icons.directions_car_rounded, 'Ride', 'Get a car'),
+    ('dispatch', Icons.two_wheeler_rounded, 'Dispatch', 'Bike courier'),
+    ('delivery', Icons.local_shipping_rounded, 'Delivery', 'Car or van'),
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(serviceChoiceProvider);
+    final control = ref.watch(appSettingsProvider).value ?? const AppSettings();
+    return Row(children: [
+      for (final (i, (id, icon, title, hint)) in _options.indexed) ...[
+        if (i > 0) const SizedBox(width: 8),
+        Expanded(
+          child: Builder(builder: (context) {
+            final on = selected == id;
+            final open = control.serviceEnabled(id);
+            return Semantics(
+              button: true,
+              selected: on,
+              enabled: open,
+              label: '$title. ${open ? hint : 'Paused right now'}',
+              excludeSemantics: true,
+              child: Material(
+                key: ValueKey('service-$id'),
+                color: on ? RarColors.royal : RarColors.background,
+                borderRadius: RarRadius.card,
+                child: InkWell(
+                  borderRadius: RarRadius.card,
+                  onTap: open ? () => ref.read(serviceChoiceProvider.notifier).choose(id) : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: RarRadius.card,
+                      border: Border.all(color: on ? RarColors.royal : RarColors.outlineLight),
+                    ),
+                    child: Opacity(
+                      opacity: open ? 1 : 0.45,
+                      child: Column(children: [
+                        Icon(icon, color: on ? RarColors.white : RarColors.royal),
+                        const SizedBox(height: 4),
+                        Text(title, style: RarTypography.titleSmall.copyWith(
+                            fontSize: 13, color: on ? RarColors.white : RarColors.navy)),
+                        Text(open ? hint : 'Paused', maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: RarTypography.caption.copyWith(
+                                fontSize: 11, color: on ? RarColors.textOnDarkSecondary : RarColors.textSecondary)),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    ]);
+  }
 }
 
 class _Shortcut extends StatelessWidget {

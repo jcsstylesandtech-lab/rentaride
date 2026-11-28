@@ -53,6 +53,19 @@ final savedPlacesProvider = FutureProvider<Map<SavedPlaceSlot, Place>>(
   (ref) => ref.read(placesRepositoryProvider).savedPlaces(),
 );
 
+/// What the passenger wants to do on the home screen: `ride`, `dispatch`
+/// (a bike courier for small packages) or `delivery` (car or van).
+final serviceChoiceProvider = NotifierProvider<ServiceChoiceController, String>(
+  ServiceChoiceController.new,
+);
+
+class ServiceChoiceController extends Notifier<String> {
+  @override
+  String build() => 'ride';
+
+  void choose(String service) => state = service;
+}
+
 /// The destination the passenger has chosen, if any.
 final destinationProvider = NotifierProvider<DestinationController, Place?>(
   DestinationController.new,
