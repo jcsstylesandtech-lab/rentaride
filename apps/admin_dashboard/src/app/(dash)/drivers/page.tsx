@@ -17,7 +17,7 @@ import {
 
 type Status = "pending" | "approved" | "rejected" | "suspended";
 type DriverRow = {
-  id: string; status: Status; service_type: ServiceType; licence_number: string | null; home_address: string | null; is_online: boolean;
+  id: string; status: Status; service_type: ServiceType; services: ServiceType[] | null; licence_number: string | null; home_address: string | null; is_online: boolean;
   rejection_reason: string | null; created_at: string; approved_at: string | null;
   profiles: { full_name: string; email: string | null; phone: string | null; avatar_url: string | null; rating_avg: number; rating_count: number } | null;
 };
@@ -27,7 +27,7 @@ type Vehicle = {
 };
 type Doc = { id: string; type: string; storage_path: string; review: string; reviewer_note: string | null; expires_on: string | null; created_at: string };
 
-const SELECT = "id, status, service_type, licence_number, home_address, is_online, rejection_reason, created_at, approved_at, profiles!drivers_id_fkey(full_name, email, phone, avatar_url, rating_avg, rating_count)";
+const SELECT = "id, status, service_type, services, licence_number, home_address, is_online, rejection_reason, created_at, approved_at, profiles!drivers_id_fkey(full_name, email, phone, avatar_url, rating_avg, rating_count)";
 
 export default function DriversPage() {
   return <Suspense><Drivers /></Suspense>;
@@ -48,14 +48,14 @@ function Drivers() {
   const load = useCallback(async () => {
     const supabase = createClient();
     let list = supabase.from("drivers").select(SELECT).eq("status", tab);
-    if (service) list = list.eq("service_type", service);
+    if (service) list = list.contains("services", [service]);
     const { data, error } = await list.order("created_at", { ascending: tab === "pending" }).limit(200);
     if (error) setError(error.message);
     setRows((data as unknown as DriverRow[]) ?? []);
     const statuses: Status[] = ["pending", "approved", "rejected", "suspended"];
     const res = await Promise.all(statuses.map((s) => {
       const c = supabase.from("drivers").select("id", { count: "exact", head: true }).eq("status", s);
-      return service ? c.eq("service_type", service) : c;
+      return service ? c.contains("services", [service]) : c;
     }));
     setCounts(Object.fromEntries(statuses.map((s, i) => [s, res[i].count ?? 0])) as Record<Status, number>);
   }, [tab, service]);
@@ -100,7 +100,7 @@ function Drivers() {
                       <div><p className="font-medium">{d.profiles?.full_name || "Unnamed"}</p><p className="muted text-xs">{d.profiles?.email}</p></div>
                     </div>
                   </td>
-                  <td className={td}><ServiceTag service={d.service_type} /></td>
+                  <td className={td}><div className="flex flex-wrap gap-x-3 gap-y-1">{jobs(d).map((sv) => <ServiceTag key={sv} service={sv} />)}</div></td>
                   <td className={td}>{d.profiles?.phone ?? "—"}</td>
                   <td className={td}>{d.licence_number ?? "—"}</td>
                   <td className={td}>{d.profiles ? `${Number(d.profiles.rating_avg).toFixed(2)} (${d.profiles.rating_count})` : "—"}</td>
@@ -186,21 +186,24 @@ function DriverDrawer({ id, onClose, onChanged }: { id: string; onClose: () => v
 
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div className="col-span-2 rounded-xl bg-white/[0.03] p-3">
-              <dt className="muted text-xs">Service</dt>
+              <dt className="muted text-xs">Jobs this driver takes</dt>
               <dd className="mt-1.5 flex flex-wrap gap-2">
                 {allowed ? SERVICES.map((sv) => {
                   const Icon = sv.icon;
-                  const on = driver.service_type === sv.value;
+                  const current = jobs(driver);
+                  const on = current.includes(sv.value);
+                  const next = on ? current.filter((x) => x !== sv.value) : [...current, sv.value];
                   return (
-                    <button key={sv.value} disabled={busy || on} aria-pressed={on}
-                      onClick={() => run("driver.service_changed", "drivers", id,
-                        () => supabase.from("drivers").update({ service_type: sv.value }).eq("id", id),
-                        { from: driver.service_type, to: sv.value })}
+                    <button key={sv.value} disabled={busy || (on && current.length === 1)} aria-pressed={on}
+                      title={on && current.length === 1 ? "A driver needs at least one kind of job" : undefined}
+                      onClick={() => run("driver.services_changed", "drivers", id,
+                        () => supabase.from("drivers").update({ services: next }).eq("id", id),
+                        { from: current, to: next })}
                       className={`pill flex items-center gap-1.5 px-3 py-1 text-xs ${on ? "border-transparent bg-royal text-white" : "text-white/70 hover:bg-white/5"}`}>
                       <Icon size={13} />{sv.short}
                     </button>
                   );
-                }) : <ServiceTag service={driver.service_type} />}
+                }) : <div className="flex flex-wrap gap-3">{jobs(driver).map((sv) => <ServiceTag key={sv} service={sv} />)}</div>}
               </dd>
             </div>
             <Info label="Licence number" value={driver.licence_number ?? "—"} />
@@ -295,6 +298,11 @@ function Info({ label, value }: { label: string; value: string }) {
       <dd className="mt-0.5">{value}</dd>
     </div>
   );
+}
+
+/** The jobs a driver takes; older rows fall back to their sign-up service. */
+function jobs(d: DriverRow): ServiceType[] {
+  return d.services?.length ? d.services : [d.service_type];
 }
 
 function ServiceTag({ service }: { service: ServiceType }) {
